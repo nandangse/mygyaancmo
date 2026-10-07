@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.0.0.0",
+    "date": "2026-10-07",
+    "type": "feat",
+    "summary": "Step 1 tenancy spine: agencies, companies, memberships (7 roles), audit log, feature flags, Postgres RLS, reusable company-scope policy pattern, and an 80-assertion RLS isolation suite wired into CI. Supabase project connected (Mumbai).",
+    "commit": null
+  },
+  {
     "version": "1.0.0.0.0.1",
     "date": "2026-10-07",
     "type": "chore",

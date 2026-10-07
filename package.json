@@ -1,6 +1,6 @@
 {
   "name": "mygyaancmo",
-  "version": "1.0.0-0.0.1",
+  "version": "1.0.1-0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "log": "node scripts/changelog.mjs",
-    "log:sync": "node scripts/changelog.mjs --sync"
+    "log:sync": "node scripts/changelog.mjs --sync",
+    "test:rls": "bash scripts/test-rls.sh",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "16.4.0",
