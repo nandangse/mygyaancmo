@@ -1,9 +1,16 @@
 [
   {
+    "version": "1.0.0.0.0.1",
+    "date": "2026-10-07",
+    "type": "chore",
+    "summary": "Backfill commit hash for baseline changelog entry.",
+    "commit": null
+  },
+  {
     "version": "1.0.0.0.0.0",
     "date": "2026-10-07",
     "type": "chore",
     "summary": "Project baseline: Next.js scaffold, scope document, six-part versioning, changelog system and admin changelog page.",
-    "commit": null
+    "commit": "96ec795"
   }
 ]
