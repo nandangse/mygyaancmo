@@ -1,0 +1,4 @@
+#!/bin/sh
+msg=$(head -n1 "$1")
+echo "$msg" | grep -Eq '\[v[0-9]+(\.[0-9]+){5}\]' || { echo "commit subject must contain [vA.B.C.D.E.F] (see docs/VERSIONING.md)"; exit 1; }
+git diff --cached --name-only | grep -q '^changelog/entries.json$' || { echo "stage changelog/entries.json (run: npm run log -- ...)"; exit 1; }
