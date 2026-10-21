@@ -1,0 +1,19 @@
+- **Open Questions and Blockers** [`open-questions-and-blockers`]: Blockers, open questions and next steps: Abacus India-region answer, tenant onboarding, pending integrations and pilot plan.
+- **Portal Navigation and Branding** [`portal-navigation-and-branding`]: Portal left-menu structure, header and branding rules: grouped sidebar, co-branded frozen header, onboarding page, tenant logo setup.
+- **Status** [`status`]: Deployment status: live modules, hostnames, release versioning and pending deploys. What is live as of 17-Oct-2026 and what awaits go-ahead.
+- **Integrations and Channel Providers** [`integrations-and-channel-providers`]: Integration catalogue and channel providers: WhatsApp, Calling/VoIP, LinkedIn, Email/Mailer Cloud, Apollo, and the outbound REST API for Genie CRM.
+- **Pending Work, Bugs and Team Notes** [`pending-work-bugs-and-team-notes`]: Open to-dos, known bugs and fixes, scoring notes and team conventions.
+- **Access, Accounts and Security** [`access-accounts-and-security`]: Admin accounts, set-password links, user roles and security fixes. Includes Nandan admin onboarding status.
+- **Workflows Module** [`workflows-module`]: Workflows (Vault) module: reference product, three build phases, differentiator, build/deploy state and the decision to build in-house rather than use the Vault's MCP servers.
+- **Voice Agent** [`voice-agent`]: Speed-to-Lead Voice Agent: purpose, stack, Phase 1 scope, qualification and scoring, tenant settings, inputs due, acceptance, risks, and sandbox-mode build state.
+- **Product Scope** [`product-scope`]: Core CMO portal scope: MQL-stage portal, channels, email workflow and marketing, audits. Mini CRM option and planned features.
+- **Tenant Modules: Competition, Knowledge, KPIs, Tools and Rule of One** [`tenant-modules-competition-knowledge-kpis-tools-and-rule-of-one`]: Tenant-facing modules beyond channels: competition, company knowledge dump, KPIs. Tools menu and the Rule of One positioning wizard.
+- **Landing Page and Home Page Messaging** [`landing-page-and-home-page-messaging`]: Public landing/home page content, positioning, pain points and hero rules. What ships live and what must not be exposed.
+- **Decisions** [`decisions`]: Project decisions with rationale, e.g. hosting choice and company brain confidentiality.
+- **Marketing Content and Partner Program** [`marketing-content-and-partner-program`]: Marketing Plan tenant module, Book Summaries CMS under Resources, and the agency Partner page/pitch: scope and structure.
+- **Planning and Roadmap** [`planning-and-roadmap`]: Working sequence, master plan and scope documents, and requested features still to be scoped (Integrations, Genie, home page).
+- **CRM Surface** [`crm-surface`]: The CRM component (cmo.nandan.co.in/crm), separate from the CMO portal: its purpose, funnel, lead intake, RM assignment and personalized proposals.
+- **Architecture** [`architecture`]: Tenancy, URL structure, versioning and channel model agreed for the CMO portal.
+- **Domain Model** [`domain-model`]: Key entities and how they relate: leads, lead scoring, industries, segments.
+- **Overview** [`overview`]: What the project is, its planned scale, main parts (CMO portal, channels, integrations) and who drives it.
+- **Links** [`links`]: Important reference links shared by members for the project.

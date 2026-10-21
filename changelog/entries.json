@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.0.0.1",
+    "date": "2026-10-21",
+    "type": "docs",
+    "summary": "Archive Abacus export (code, docs, schema) under legacy/abacus-export as reference, with Hostinger hosting notes",
+    "commit": null
+  },
+  {
     "version": "1.0.1.0.0.0",
     "date": "2026-10-07",
     "type": "feat",

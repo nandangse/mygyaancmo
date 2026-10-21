@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Archived Abacus build, reference only.
+    "legacy/**",
   ]),
 ]);
 
