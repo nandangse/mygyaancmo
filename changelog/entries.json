@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.0.1.0",
+    "date": "2026-10-22",
+    "type": "docs",
+    "summary": "Hostinger deployment guide: VPS setup, staging, cutover of cmo.mygyaan.ai, backups",
+    "commit": null
+  },
+  {
     "version": "1.0.1.0.0.1",
     "date": "2026-10-21",
     "type": "docs",

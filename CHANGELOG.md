@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.0.1.0 — 2026-10-22 — docs
+
+Hostinger deployment guide: VPS setup, staging, cutover of cmo.mygyaan.ai, backups
+
 ## v1.0.1.0.0.1 — 2026-10-21 — docs
 
 Archive Abacus export (code, docs, schema) under legacy/abacus-export as reference, with Hostinger hosting notes
