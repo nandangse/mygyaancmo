@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.0.1.1",
+    "date": "2026-10-22",
+    "type": "docs",
+    "summary": "Deploy guide: target existing KVM 8 VPS, install folder /opt/cmomygyaanai, shared-server checks",
+    "commit": null
+  },
+  {
     "version": "1.0.1.0.1.0",
     "date": "2026-10-22",
     "type": "docs",

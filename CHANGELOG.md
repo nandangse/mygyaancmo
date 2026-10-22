@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.0.1.1 — 2026-10-22 — docs
+
+Deploy guide: target existing KVM 8 VPS, install folder /opt/cmomygyaanai, shared-server checks
+
 ## v1.0.1.0.1.0 — 2026-10-22 — docs
 
 Hostinger deployment guide: VPS setup, staging, cutover of cmo.mygyaan.ai, backups

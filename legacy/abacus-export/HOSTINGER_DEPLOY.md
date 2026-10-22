@@ -29,10 +29,36 @@ Have ready: your domain's DNS panel login, the private copy of `database/full_du
 1. Buy the KVM plan → **Setup** → OS **Ubuntu 24.04** → set a strong **root password** → finish.
 2. VPS → **Settings → SSH keys** → add your laptop's public key
    (`laptop$ cat ~/.ssh/id_ed25519.pub`; create one with `ssh-keygen -t ed25519` if missing).
-3. VPS → **Overview**: note the **IPv4 address** → call it `VPS_IP` below.
+3. VPS → **Overview**: note the **IPv4 address** → call it `200.141.14.250` below.
 4. VPS → **Security → Firewall** → create a rule set → allow **22, 80, 443** (TCP, any source) → apply.
 
-**Check:** `laptop$ ssh root@VPS_IP` logs in without asking for a password.
+**Check:** `laptop$ ssh root@200.141.14.250` logs in without asking for a password.
+
+---
+
+## Phase 1b — Existing server: `srv2072914.hstgr.cloud` (KVM 8, 200.141.14.250)
+
+Phases 0–1 are already done: the VPS exists, Ubuntu 24.04, 8 vCPU / 32 GB, 400 GB disk.
+It already uses 40 GB and has 4 firewall rules, so **something else is probably running on it**.
+Before installing anything, find out what, so the CMO app is added beside it, not on top of it:
+
+```bash
+server$ ss -tlnp | grep -E ':80 |:443 |:3000 |:5432 '     # who owns the web, app and Postgres ports
+server$ ls /etc/nginx/sites-enabled/ 2>/dev/null           # existing Nginx sites
+server$ systemctl is-active nginx postgresql apache2 docker 2>/dev/null
+server$ pm2 ls 2>/dev/null; docker ps 2>/dev/null
+server$ df -h / && du -sh /var/www /opt /home 2>/dev/null
+```
+
+Rules for a shared server:
+- The app lives in its own folder **`/opt/cmomygyaanai`** and its own PM2 process `cmomygyaanai`.
+- If port **3000** is taken, run the app on another port: `pm2 start "yarn start -p 3100"` and use `3100` in the Nginx file.
+- If **Nginx** already exists, skip `apt install nginx` and do **not** delete `sites-enabled/default` (Phase 9); only add the new site file.
+- If **Apache** owns port 80/443, stop here and tell me; the proxy setup is different.
+- If **PostgreSQL** already exists, skip installing it; just create the user and database (Phase 4).
+- In Phase 1 the firewall already has rules: check that 80 and 443 are among them.
+
+**Check:** paste the output of the commands above to me before continuing.
 
 ---
 
@@ -56,7 +82,7 @@ server$ fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && 
 server$ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
-**Check:** `laptop$ ssh deploy@VPS_IP` works. From now on log in as `deploy` and use `sudo`.
+**Check:** `laptop$ ssh deploy@200.141.14.250` works. From now on log in as `deploy` and use `sudo`.
 
 ---
 
@@ -97,10 +123,10 @@ server$ ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519 && cat ~/.ssh/id_ed2551
 GitHub → `nandangse/mygyaancmo` → **Settings → Deploy keys → Add** → paste → read-only → save.
 
 ```bash
-server$ sudo mkdir -p /opt/mygyaan-cmo && sudo chown deploy:deploy /opt/mygyaan-cmo
+server$ sudo mkdir -p /opt/cmomygyaanai && sudo chown deploy:deploy /opt/cmomygyaanai
 server$ git clone git@github.com:nandangse/mygyaancmo.git /opt/mygyaan-src
-server$ cp -r /opt/mygyaan-src/legacy/abacus-export/app/. /opt/mygyaan-cmo/
-server$ cd /opt/mygyaan-cmo
+server$ cp -r /opt/mygyaan-src/legacy/abacus-export/app/. /opt/cmomygyaanai/
+server$ cd /opt/cmomygyaanai
 ```
 
 Remove the two Abacus-only settings:
@@ -142,14 +168,14 @@ server$ chmod 600 .env
 ## Phase 7 — Install dependencies and load the database (15 min)
 
 ```bash
-server$ cd /opt/mygyaan-cmo && yarn install
+server$ cd /opt/cmomygyaanai && yarn install
 server$ yarn prisma generate
 ```
 
 **Option A — restore the real data (recommended):** copy your private dump up and load it.
 
 ```bash
-laptop$ scp /path/to/full_dump.sql deploy@VPS_IP:/tmp/
+laptop$ scp /path/to/full_dump.sql deploy@200.141.14.250:/tmp/
 server$ set -a && . ./.env && set +a
 server$ psql "$DATABASE_URL" -f /tmp/full_dump.sql && rm /tmp/full_dump.sql
 ```
@@ -167,22 +193,22 @@ server$ yarn prisma db push && yarn prisma db seed
 ## Phase 8 — Build and run under PM2 (10 min)
 
 ```bash
-server$ cd /opt/mygyaan-cmo && yarn build
-server$ pm2 start "yarn start" --name mygyaan-cmo --cwd /opt/mygyaan-cmo
+server$ cd /opt/cmomygyaanai && yarn build
+server$ pm2 start "yarn start" --name cmomygyaanai --cwd /opt/cmomygyaanai
 server$ pm2 save && pm2 startup   # run the one command it prints
 ```
 
-**Check:** `curl -I http://127.0.0.1:3000` returns `HTTP/1.1 200`. Logs: `pm2 logs mygyaan-cmo`.
+**Check:** `curl -I http://127.0.0.1:3000` returns `HTTP/1.1 200`. Logs: `pm2 logs cmomygyaanai`.
 
 ---
 
 ## Phase 9 — Staging hostname, Nginx and SSL (15 min)
 
-1. DNS panel: add **A record** `cmo-new` → `VPS_IP`, TTL 300. Wait until `dig +short cmo-new.mygyaan.ai` shows the IP.
+1. DNS panel: add **A record** `cmo-new` → `200.141.14.250`, TTL 300. Wait until `dig +short cmo-new.mygyaan.ai` shows the IP.
 2. Nginx:
 
 ```bash
-server$ sudo tee /etc/nginx/sites-available/mygyaan-cmo >/dev/null <<'EOF'
+server$ sudo tee /etc/nginx/sites-available/cmomygyaanai >/dev/null <<'EOF'
 server {
     server_name cmo-new.mygyaan.ai;
     client_max_body_size 100M;
@@ -199,8 +225,8 @@ server {
     }
 }
 EOF
-server$ sudo ln -sf /etc/nginx/sites-available/mygyaan-cmo /etc/nginx/sites-enabled/
-server$ sudo rm -f /etc/nginx/sites-enabled/default
+server$ sudo ln -sf /etc/nginx/sites-available/cmomygyaanai /etc/nginx/sites-enabled/
+server$ sudo rm -f /etc/nginx/sites-enabled/default   # ONLY if no other site uses this server (Phase 1b)
 server$ sudo nginx -t && sudo systemctl reload nginx
 server$ sudo certbot --nginx -d cmo-new.mygyaan.ai --redirect -m raghu@nandan.co.in --agree-tos -n
 ```
@@ -219,7 +245,7 @@ Tick every line before cutover:
 - [ ] Create a test contact, then delete it
 - [ ] Email Campaigns and Workflows pages open without 500s
 - [ ] AI feature (ICP generate) works if `ABACUSAI_API_KEY` is set; shows a clean error if not
-- [ ] `pm2 logs mygyaan-cmo --lines 200` has no repeated errors
+- [ ] `pm2 logs cmomygyaanai --lines 200` has no repeated errors
 - [ ] Reboot test: `sudo reboot`, wait 1 min, site comes back on its own
 
 Fix anything that fails here, on staging, before touching the live subdomain.
@@ -238,8 +264,8 @@ Fix anything that fails here, on staging, before touching the live subdomain.
 4. Reload it on Hostinger:
 
 ```bash
-laptop$ scp fresh.sql deploy@VPS_IP:/tmp/
-server$ cd /opt/mygyaan-cmo && set -a && . ./.env && set +a
+laptop$ scp fresh.sql deploy@200.141.14.250:/tmp/
+server$ cd /opt/cmomygyaanai && set -a && . ./.env && set +a
 server$ sudo -u postgres psql -c 'DROP DATABASE mygyaan_cmo;' -c 'CREATE DATABASE mygyaan_cmo OWNER mygyaan;'
 server$ psql "$DATABASE_URL" -f /tmp/fresh.sql && rm /tmp/fresh.sql
 ```
@@ -248,13 +274,13 @@ server$ psql "$DATABASE_URL" -f /tmp/fresh.sql && rm /tmp/fresh.sql
 
 ```bash
 server$ sed -i 's#NEXTAUTH_URL=.*#NEXTAUTH_URL="https://cmo.mygyaan.ai"#' .env
-server$ sudo sed -i 's/server_name cmo-new.mygyaan.ai;/server_name cmo.mygyaan.ai cmo-new.mygyaan.ai;/' /etc/nginx/sites-available/mygyaan-cmo
+server$ sudo sed -i 's/server_name cmo-new.mygyaan.ai;/server_name cmo.mygyaan.ai cmo-new.mygyaan.ai;/' /etc/nginx/sites-available/cmomygyaanai
 server$ sudo nginx -t && sudo systemctl reload nginx
-server$ pm2 restart mygyaan-cmo
+server$ pm2 restart cmomygyaanai
 ```
 
-6. DNS panel: change `cmo` → **A record → `VPS_IP`** (delete the old CNAME to Abacus if that's what it was).
-7. Wait until `dig +short cmo.mygyaan.ai` returns `VPS_IP` (≤ 5 min with TTL 300), then:
+6. DNS panel: change `cmo` → **A record → `200.141.14.250`** (delete the old CNAME to Abacus if that's what it was).
+7. Wait until `dig +short cmo.mygyaan.ai` returns `200.141.14.250` (≤ 5 min with TTL 300), then:
 
 ```bash
 server$ sudo certbot --nginx -d cmo.mygyaan.ai -d cmo-new.mygyaan.ai --redirect -n
@@ -274,7 +300,7 @@ Keep the Abacus deployment running, untouched, for **7 days**, then delete it.
 ```bash
 server$ mkdir -p ~/backups && crontab -e
 # add:
-30 2 * * * cd /opt/mygyaan-cmo && set -a && . ./.env && set +a && pg_dump "$DATABASE_URL" | gzip > ~/backups/cmo-$(date +\%F).sql.gz && find ~/backups -mtime +30 -delete
+30 2 * * * cd /opt/cmomygyaanai && set -a && . ./.env && set +a && pg_dump "$DATABASE_URL" | gzip > ~/backups/cmo-$(date +\%F).sql.gz && find ~/backups -mtime +30 -delete
 ```
 
    Also switch on Hostinger's **weekly VPS snapshot** (VPS → Backups).
@@ -282,7 +308,7 @@ server$ mkdir -p ~/backups && crontab -e
 3. **Remove the Abacus script tag** in `app/layout.tsx` (line 24, `appllm-lib.js`) — rebuild.
 4. **Replace Abacus services** one by one (see `README.md` table): LLM endpoint, notification email,
    S3 bucket in `ap-south-1`, book-cover images.
-5. **Updates:** `cd /opt/mygyaan-src && git pull`, copy changes over, `yarn build`, `pm2 restart mygyaan-cmo`.
+5. **Updates:** `cd /opt/mygyaan-src && git pull`, copy changes over, `yarn build`, `pm2 restart cmomygyaanai`.
 
 ---
 
@@ -296,4 +322,4 @@ server$ mkdir -p ~/backups && crontab -e
 | 502 Bad Gateway | `pm2 status` — app crashed; `pm2 logs` shows why (usually `.env`) |
 | `Environment variable not found: DATABASE_URL` | Run `set -a && . ./.env && set +a` first |
 | Uploads fail | AWS_* not set yet (Phase 12 step 4), or Nginx `client_max_body_size` |
-| certbot fails | DNS not propagated yet — `dig +short <host>` must show `VPS_IP` |
+| certbot fails | DNS not propagated yet — `dig +short <host>` must show `200.141.14.250` |
