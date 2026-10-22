@@ -1,11 +1,10 @@
-# Abacus build — reference archive (export of 20-Oct-2026)
+# Abacus export (20-Oct-2026) — docs archive
 
-This folder is a **read-only reference copy** of the MyGyaan CMO portal as built on Abacus.AI
-(Next.js 16 + Prisma + PostgreSQL + NextAuth v5). It is **not** the app this repository builds —
-the live rebuild is the Supabase project at the repo root (`src/`, `supabase/`). Use this archive to
-look up how a module behaved, its data model, and the decisions behind it, when porting it across.
+The Abacus build's **application code now lives at `/cmomygyaanai`** (the deployable app, with the
+database-per-tenant architecture added on 22-Oct-2026). This folder keeps the export's documents:
+the history, the install guides and the planning/wiki records.
 
-It is excluded from the root `tsc` and `eslint` runs, so it never affects CI.
+`legacy/` and `cmomygyaanai/` are excluded from the root `tsc` and `eslint` runs.
 
 ## What's here
 
@@ -14,8 +13,8 @@ It is excluded from the root `tsc` and `eslint` runs, so it never affects CI.
 | `CONSOLIDATED_HISTORY.md` | Start here: product, modules built, architecture, decisions, sources |
 | `INSTALL_SELF_HOST.md` | Original self-host guide (generic India VPS) |
 | `BUNDLE_README.md` | The export bundle's own README |
-| `app/` | Full application source (`prisma/schema.prisma` = 102-table data model) |
-| `database/schema_only.sql` | DDL only, no rows |
+| `HOSTINGER_DEPLOY.md` | **The deployment runbook for the Hostinger VPS** |
+| `database/schema_only.sql` | DDL of the Abacus database at export time, no rows |
 | `docs/` | Scope, master plan, handover, build notes, 20-page project wiki (Markdown only) |
 
 ## Deliberately left out
@@ -57,4 +56,4 @@ Still tied to Abacus (they leave India or stop working once off the platform) �
 | Images on `cdn.abacus.ai` | `scripts/seed.ts` (book covers) | Re-host in your own S3-compatible bucket |
 | File storage (`AWS_*`) | `lib/s3.ts` | S3-compatible bucket in Mumbai (`ap-south-1`) |
 
-Database-per-tenant (decision 4.2) is not implemented in this build; see `INSTALL_SELF_HOST.md` §8.
+Database-per-tenant (decision 4.2) is implemented in `/cmomygyaanai` — see its README.

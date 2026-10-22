@@ -1,6 +1,6 @@
 # Deploying MyGyaan CMO on Hostinger — step by step
 
-**Goal:** run the Abacus build (`legacy/abacus-export/app`) on a Hostinger KVM VPS in India, test it on a
+**Goal:** run the Abacus build (`cmomygyaanai`) on a Hostinger KVM VPS in India, test it on a
 staging hostname, then move `cmo.mygyaan.ai` from Abacus to Hostinger with no downtime.
 
 Do the phases in order. Each phase ends with a check; don't go on until it passes.
@@ -19,8 +19,8 @@ Commands marked `server$` run on the VPS over SSH; `laptop$` run on your own mac
 | Staging hostname | `cmo-new.mygyaan.ai` — used to test before the real switch |
 | Final hostname | `cmo.mygyaan.ai` |
 
-Have ready: your domain's DNS panel login, the private copy of `database/full_dump.sql`
-(not in GitHub), and an `ABACUSAI_API_KEY` if you want AI to keep working during transition.
+Have ready: your domain's DNS panel login
+and an `ABACUSAI_API_KEY` if you want AI to keep working during transition.
 
 ---
 
@@ -106,43 +106,39 @@ server$ node -v && corepack yarn -v && psql --version
 
 ---
 
-## Phase 4 — Create the database (5 min)
+## Phase 4 — Database user (5 min)
+
+The app uses **one registry database** (companies, users, logins, roles, billing) plus
+**one database per tenant** (all of that tenant's marketing data). The app creates tenant
+databases itself, so the Postgres user needs `CREATEDB`.
 
 ```bash
 server$ DBPASS=$(openssl rand -hex 24); echo "DB password: $DBPASS"   # save it in your password manager
-server$ sudo -u postgres psql -c "CREATE USER mygyaan WITH PASSWORD '$DBPASS';"
-server$ sudo -u postgres psql -c "CREATE DATABASE mygyaan_cmo OWNER mygyaan;"
+server$ sudo -u postgres psql -c "CREATE USER mygyaan WITH PASSWORD '$DBPASS' CREATEDB;"
+server$ sudo -u postgres psql -c "CREATE DATABASE cmo_registry OWNER mygyaan;"
 ```
 
-**Check:** `psql "postgresql://mygyaan:$DBPASS@localhost:5432/mygyaan_cmo" -c 'select 1'` prints `1`.
+**Check:** `psql "postgresql://mygyaan:$DBPASS@localhost:5432/cmo_registry" -c 'select 1'` prints `1`.
+
+> A tenant can live on a **different server or country**: create an empty Postgres database there,
+> and paste its URL into the "Database URL" box when creating the company in `/admin`.
 
 ---
 
 ## Phase 5 — Put the code on the server (10 min)
 
-Clone the GitHub repo (it holds the archived app) with a read-only deploy key:
-
-```bash
-server$ ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519 && cat ~/.ssh/id_ed25519.pub
-```
-
-GitHub → `nandangse/mygyaancmo` → **Settings → Deploy keys → Add** → paste → read-only → save.
+Clone the GitHub repo with the read-only deploy key from your Step 3:
 
 ```bash
 server$ sudo mkdir -p /opt/cmomygyaanai && sudo chown deploy:deploy /opt/cmomygyaanai
 server$ git clone git@github.com:nandangse/mygyaancmo.git /opt/mygyaan-src
-server$ cp -r /opt/mygyaan-src/legacy/abacus-export/app/. /opt/cmomygyaanai/
+server$ cd /opt/mygyaan-src && git checkout claude/adoring-hamilton-pher13     # until merged to main
+server$ cp -r /opt/mygyaan-src/cmomygyaanai/. /opt/cmomygyaanai/
 server$ cd /opt/cmomygyaanai
-```
-
-Remove the two Abacus-only settings:
-
-```bash
-server$ sed -i '/globalFolder:/d; /nmMode:/d' .yarnrc.yml
 server$ sed -i "s/allowedDevOrigins: \[.*\]/allowedDevOrigins: ['127.0.0.1']/" next.config.js
 ```
 
-**Check:** `cat .yarnrc.yml` shows no `/opt/hostedapp` line.
+**Check:** `ls /opt/cmomygyaanai/prisma` shows `schema.prisma` and `tenant-schema.sql`.
 
 ---
 
@@ -155,13 +151,15 @@ server$ cp .env.example .env && nano .env
 Fill these (leave the rest blank for now):
 
 ```
-DATABASE_URL="postgresql://mygyaan:<DBPASS>@localhost:5432/mygyaan_cmo?schema=public"
+DATABASE_URL="postgresql://mygyaan:<DBPASS>@localhost:5432/cmo_registry?schema=public"
+TENANT_DB_ADMIN_URL="postgresql://mygyaan:<DBPASS>@localhost:5432/postgres"
+TENANT_DB_KEY="<openssl rand -base64 32>"        # encrypts tenant DB URLs — back this up with the DB password
 NEXTAUTH_SECRET="<openssl rand -base64 32>"
 AUTH_SECRET="<openssl rand -base64 32>"
 NEXTAUTH_URL="https://cmo-new.mygyaan.ai"        # staging now; changed at cutover
-SEED_ADMIN_PASSWORD="<strong>"                   # only used if you seed (Option B)
-SEED_NANDAN_PASSWORD="<strong>"
-SEED_TEST_PASSWORD="<strong>"
+ADMIN_EMAIL="raghu@nandan.co.in"                 # your /admin login
+ADMIN_PASSWORD="<strong, 12+ chars>"
+ADMIN_NAME="Dr Raghu"
 ABACUSAI_API_KEY="<your key, or blank>"          # keeps AI + notification emails working during transition
 ```
 
@@ -171,28 +169,18 @@ server$ chmod 600 .env
 
 ---
 
-## Phase 7 — Install dependencies and load the database (15 min)
+## Phase 7 — Install, create the registry, create the admin (10 min)
 
 ```bash
 server$ cd /opt/cmomygyaanai && yarn install
 server$ yarn prisma generate
+server$ yarn prisma db push        # creates the registry tables
+server$ yarn bootstrap             # MyGyaan agency + your admin login + integration catalogue + books
 ```
 
-**Option A — restore the real data (recommended):** copy your private dump up and load it.
+No data is restored from Abacus: this is a fresh start. Tenants are created in `/admin` after Phase 9.
 
-```bash
-laptop$ scp /path/to/full_dump.sql deploy@200.141.14.250:/tmp/
-server$ set -a && . ./.env && set +a
-server$ psql "$DATABASE_URL" -f /tmp/full_dump.sql && rm /tmp/full_dump.sql
-```
-
-**Option B — empty database with seed data:**
-
-```bash
-server$ yarn prisma db push && yarn prisma db seed
-```
-
-**Check:** `psql "$DATABASE_URL" -c 'select slug from "Company"'` lists `nandan` (and the others).
+**Check:** `yarn bootstrap` ends with `Bootstrap complete`.
 
 ---
 
@@ -245,6 +233,22 @@ missing after 2 minutes: `sudo docker logs app-caddy-1 --tail 50`.
 
 ---
 
+## Phase 9b — Create Nandan, tenant #1 (5 min)
+
+1. Open `https://cmo-new.mygyaan.ai/login` → sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+2. `/admin/companies` → **Create Company**: name `Nandan GSE`, slug `nandan`, agency MyGyaan,
+   region **India**, Database URL blank → Create. The app creates the database `cmo_t_nandan`,
+   applies the schema and shows **DB: ready** in the table.
+3. `/nandan/settings` → Users & Roles → add Vishnu and yourself, copy the set-password links.
+
+```bash
+server$ cd /opt/cmomygyaanai && yarn tenant list     # nandan  in  ready  localhost/cmo_t_nandan
+```
+
+**Check:** `https://cmo-new.mygyaan.ai/nandan` loads with the KPI defaults in place.
+
+---
+
 ## Phase 10 — Test on staging (30 min, you + Vishnu)
 
 Tick every line before cutover:
@@ -269,28 +273,20 @@ Fix anything that fails here, on staging, before touching the live subdomain.
 2. Tell users: no edits on the portal between the freeze time and the all-clear.
 
 **T-0 (freeze)**
-3. Take a **fresh dump from Abacus** so no data created after 20-Oct is lost
-   (Abacus console → database → export; or `pg_dump "$ABACUS_DATABASE_URL" > fresh.sql` if you have the URL).
-4. Reload it on Hostinger:
+3. Nothing to copy: the new portal starts fresh (decision: rebuild the data from scratch). Anything
+   still wanted from Abacus (Knowledge-Base files, contact CSVs) is re-uploaded through the portal.
+4. Switch the app to the real hostname:
 
 ```bash
-laptop$ scp fresh.sql deploy@200.141.14.250:/tmp/
-server$ cd /opt/cmomygyaanai && set -a && . ./.env && set +a
-server$ sudo -u postgres psql -c 'DROP DATABASE mygyaan_cmo;' -c 'CREATE DATABASE mygyaan_cmo OWNER mygyaan;'
-server$ psql "$DATABASE_URL" -f /tmp/fresh.sql && rm /tmp/fresh.sql
-```
-
-5. Switch the app to the real hostname:
-
-```bash
+server$ cd /opt/cmomygyaanai
 server$ sed -i 's#NEXTAUTH_URL=.*#NEXTAUTH_URL="https://cmo.mygyaan.ai"#' .env
 server$ pm2 restart cmomygyaanai
 server$ sudo sed -i 's/^cmo-new.mygyaan.ai {/cmo.mygyaan.ai, cmo-new.mygyaan.ai {/' "$CADDYFILE"   # CADDYFILE from Phase 9
 server$ sudo docker exec -w /etc/caddy app-caddy-1 caddy validate --config /etc/caddy/Caddyfile
 ```
 
-6. DNS panel: change `cmo` → **A record → `200.141.14.250`** (delete the old CNAME to Abacus if that's what it was).
-7. Wait until `dig +short cmo.mygyaan.ai` returns `200.141.14.250` (≤ 5 min with TTL 300), then reload
+5. DNS panel: change `cmo` → **A record → `200.141.14.250`** (delete the old CNAME to Abacus if that's what it was).
+6. Wait until `dig +short cmo.mygyaan.ai` returns `200.141.14.250` (≤ 5 min with TTL 300), then reload
    Caddy; it fetches the certificate for `cmo.mygyaan.ai` within a minute:
 
 ```bash
@@ -298,7 +294,7 @@ server$ sudo docker exec -w /etc/caddy app-caddy-1 caddy reload --config /etc/ca
 server$ sudo docker logs app-caddy-1 --tail 20   # look for "certificate obtained"
 ```
 
-8. Open `https://cmo.mygyaan.ai`, log in, repeat the Phase 10 checklist quickly. Give the all-clear.
+7. Open `https://cmo.mygyaan.ai`, log in, repeat the Phase 10 checklist quickly. Give the all-clear.
 
 **Rollback (if anything is wrong):** point the `cmo` record back at Abacus; it recovers within 5 min.
 Keep the Abacus deployment running, untouched, for **7 days**, then delete it.
@@ -312,15 +308,18 @@ Keep the Abacus deployment running, untouched, for **7 days**, then delete it.
 ```bash
 server$ mkdir -p ~/backups && crontab -e
 # add:
-30 2 * * * cd /opt/cmomygyaanai && set -a && . ./.env && set +a && pg_dump "$DATABASE_URL" | gzip > ~/backups/cmo-$(date +\%F).sql.gz && find ~/backups -mtime +30 -delete
+30 2 * * * for db in $(psql -tA "postgresql://mygyaan:<DBPASS>@localhost:5432/postgres" -c "select datname from pg_database where datname like 'cmo_%'"); do pg_dump "postgresql://mygyaan:<DBPASS>@localhost:5432/$db" | gzip > ~/backups/$db-$(date +\%F).sql.gz; done; find ~/backups -mtime +30 -delete
 ```
 
-   Also switch on Hostinger's **weekly VPS snapshot** (VPS → Backups).
+   This backs up the registry and every `cmo_t_*` tenant database. Tenant DBs on other servers
+   are backed up there. Also switch on Hostinger's **weekly VPS snapshot** (VPS → Backups).
 2. **Rotate passwords:** every seeded account, and the platform admin.
 3. **Remove the Abacus script tag** in `app/layout.tsx` (line 24, `appllm-lib.js`) — rebuild.
 4. **Replace Abacus services** one by one (see `README.md` table): LLM endpoint, notification email,
    S3 bucket in `ap-south-1`, book-cover images.
-5. **Updates:** `cd /opt/mygyaan-src && git pull`, copy changes over, `yarn build`, `pm2 restart cmomygyaanai`.
+5. **Updates:** `cd /opt/mygyaan-src && git pull`, copy changes over, `yarn build`, then
+   `yarn tenant migrate-all` (applies schema changes to the registry **and every tenant DB**),
+   then `pm2 restart cmomygyaanai`.
 
 ---
 
@@ -333,5 +332,8 @@ server$ mkdir -p ~/backups && crontab -e
 | Login loops or "callback error" | `NEXTAUTH_URL` must equal the hostname in the browser, including `https://` |
 | 502 Bad Gateway | `pm2 status` — app crashed; `pm2 logs` shows why (usually `.env`). If PM2 is fine: `ufw status` must allow 172.16.0.0/12 → 3100 |
 | `Environment variable not found: DATABASE_URL` | Run `set -a && . ./.env && set +a` first |
+| Create Company says "No database target" | `TENANT_DB_ADMIN_URL` missing in `.env`, or give a Database URL in the form |
+| Create Company → DB status **error** | `pm2 logs` shows the Postgres error (usually the user lacks `CREATEDB`); fix, then `yarn tenant provision <slug>` |
+| `TENANT_DB_KEY must decode to 32 bytes` | Regenerate with `openssl rand -base64 32` (no quotes inside the value) |
 | Uploads fail | AWS_* not set yet (Phase 12 step 4), or the Caddy `max_size` |
 | No certificate / Caddy log says "challenge failed" | DNS not propagated yet — `dig +short <host>` must show `200.141.14.250`; then `caddy reload` again |

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.1.0.0",
+    "date": "2026-10-22",
+    "type": "feat",
+    "summary": "Database-per-tenant: registry + one DB per company with region, encrypted connection strings, provisioning from /admin and CLI; app moved to cmomygyaanai/; fresh bootstrap replaces demo seed",
+    "commit": null
+  },
+  {
     "version": "1.0.1.0.1.2",
     "date": "2026-10-22",
     "type": "docs",

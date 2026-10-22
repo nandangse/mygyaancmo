@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.1.0.0 — 2026-10-22 — feat
+
+Database-per-tenant: registry + one DB per company with region, encrypted connection strings, provisioning from /admin and CLI; app moved to cmomygyaanai/; fresh bootstrap replaces demo seed
+
 ## v1.0.1.0.1.2 — 2026-10-22 — docs
 
 Deploy guide: Caddy-in-Docker proxy, host PostgreSQL, app on port 3100 (server findings 22-Oct)

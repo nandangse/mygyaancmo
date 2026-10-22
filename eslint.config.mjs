@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Archived Abacus build, reference only.
     "legacy/**",
+    // The CMO app has its own tsconfig/eslint.
+    "cmomygyaanai/**",
   ]),
 ]);
 
