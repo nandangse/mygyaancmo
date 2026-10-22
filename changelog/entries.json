@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.1.0.1",
+    "date": "2026-10-22",
+    "type": "docs",
+    "summary": "Competitor note: Different (different.ai) vs MyGyaan CMO",
+    "commit": null
+  },
+  {
     "version": "1.0.1.1.0.0",
     "date": "2026-10-22",
     "type": "feat",

@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.1.0.1 — 2026-10-22 — docs
+
+Competitor note: Different (different.ai) vs MyGyaan CMO
+
 ## v1.0.1.1.0.0 — 2026-10-22 — feat
 
 Database-per-tenant: registry + one DB per company with region, encrypted connection strings, provisioning from /admin and CLI; app moved to cmomygyaanai/; fresh bootstrap replaces demo seed
