@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.0.1.2 — 2026-10-22 — docs
+
+Deploy guide: Caddy-in-Docker proxy, host PostgreSQL, app on port 3100 (server findings 22-Oct)
+
 ## v1.0.1.0.1.1 — 2026-10-22 — docs
 
 Deploy guide: target existing KVM 8 VPS, install folder /opt/cmomygyaanai, shared-server checks

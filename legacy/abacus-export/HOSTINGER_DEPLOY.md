@@ -50,15 +50,17 @@ server$ pm2 ls 2>/dev/null; docker ps 2>/dev/null
 server$ df -h / && du -sh /var/www /opt /home 2>/dev/null
 ```
 
-Rules for a shared server:
-- The app lives in its own folder **`/opt/cmomygyaanai`** and its own PM2 process `cmomygyaanai`.
-- If port **3000** is taken, run the app on another port: `pm2 start "yarn start -p 3100"` and use `3100` in the Nginx file.
-- If **Nginx** already exists, skip `apt install nginx` and do **not** delete `sites-enabled/default` (Phase 9); only add the new site file.
-- If **Apache** owns port 80/443, stop here and tell me; the proxy setup is different.
-- If **PostgreSQL** already exists, skip installing it; just create the user and database (Phase 4).
-- In Phase 1 the firewall already has rules: check that 80 and 443 are among them.
+**Findings (22-Oct-2026):** the server already runs another product as a Docker Compose stack
+(`app-caddy-1`, `app-app-1`, `app-worker-1`, `app-converter-1`, `app-db-1` on pgvector/pg16, `app-backup-1`).
+Host Nginx, Apache and PostgreSQL are **inactive**; **Caddy (in Docker) owns ports 80 and 443**.
 
-**Check:** paste the output of the commands above to me before continuing.
+So for the CMO app:
+- **No Nginx, no certbot.** Caddy is the web server; we add one site block to its Caddyfile and it
+  issues the SSL certificate itself.
+- The app runs on the host under PM2 in **`/opt/cmomygyaanai`** on **port 3100** (3000 is used inside Docker).
+- **Host PostgreSQL** gets installed (port 5432 is free on the host; the Docker Postgres is private to
+  the other stack). Keeps the two products' data fully separate.
+- Do not touch the `app-*` containers.
 
 ---
 
@@ -71,7 +73,9 @@ server$ adduser --disabled-password --gecos "" deploy
 server$ usermod -aG sudo deploy
 server$ echo 'deploy ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/deploy
 server$ mkdir -p /home/deploy/.ssh && cp ~/.ssh/authorized_keys /home/deploy/.ssh/ && chown -R deploy:deploy /home/deploy/.ssh
-server$ ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw --force enable
+server$ ufw allow OpenSSH && ufw allow 80 && ufw allow 443
+server$ ufw allow from 172.16.0.0/12 to any port 3100   # lets Caddy (in Docker) reach the app
+server$ ufw --force enable
 server$ apt -y install fail2ban && systemctl enable --now fail2ban
 ```
 
@@ -88,12 +92,14 @@ server$ echo '/swapfile none swap sw 0 0' >> /etc/fstab
 
 ## Phase 3 — Install the runtime (10 min)
 
+No Nginx or certbot: Caddy already handles web traffic and SSL (Phase 1b).
+
 ```bash
 server$ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-server$ sudo apt -y install nodejs postgresql postgresql-contrib nginx certbot python3-certbot-nginx git build-essential
+server$ sudo apt -y install nodejs postgresql postgresql-contrib git build-essential
 server$ sudo corepack enable            # yarn 4 — the project's lockfile needs it, not classic yarn 1
 server$ sudo npm install -g pm2
-server$ node -v && corepack yarn -v && psql --version && nginx -v
+server$ node -v && corepack yarn -v && psql --version
 ```
 
 **Check:** Node `v20.x`, yarn `4.x`, psql `16.x`.
@@ -194,44 +200,48 @@ server$ yarn prisma db push && yarn prisma db seed
 
 ```bash
 server$ cd /opt/cmomygyaanai && yarn build
-server$ pm2 start "yarn start" --name cmomygyaanai --cwd /opt/cmomygyaanai
+server$ pm2 start "yarn start -p 3100" --name cmomygyaanai --cwd /opt/cmomygyaanai
 server$ pm2 save && pm2 startup   # run the one command it prints
 ```
 
-**Check:** `curl -I http://127.0.0.1:3000` returns `HTTP/1.1 200`. Logs: `pm2 logs cmomygyaanai`.
+**Check:** `curl -I http://127.0.0.1:3100` returns `HTTP/1.1 200`. Logs: `pm2 logs cmomygyaanai`.
 
 ---
 
-## Phase 9 — Staging hostname, Nginx and SSL (15 min)
+## Phase 9 — Staging hostname via Caddy (15 min)
 
 1. DNS panel: add **A record** `cmo-new` → `200.141.14.250`, TTL 300. Wait until `dig +short cmo-new.mygyaan.ai` shows the IP.
-2. Nginx:
+2. Find the Caddyfile and the Docker network gateway (the address Caddy uses to reach the host):
 
 ```bash
-server$ sudo tee /etc/nginx/sites-available/cmomygyaanai >/dev/null <<'EOF'
-server {
-    server_name cmo-new.mygyaan.ai;
-    client_max_body_size 100M;
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_cache_bypass $http_upgrade;
+server$ CADDYFILE=$(sudo docker inspect app-caddy-1 --format '{{range .Mounts}}{{if eq .Destination "/etc/caddy/Caddyfile"}}{{.Source}}{{end}}{{end}}'); echo "$CADDYFILE"
+server$ NET=$(sudo docker inspect app-caddy-1 --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+server$ GW=$(sudo docker network inspect "$NET" --format '{{(index .IPAM.Config 0).Gateway}}'); echo "$GW"
+```
+
+   If `$CADDYFILE` is empty, the config is baked into the container or lives elsewhere — stop and send me
+   `sudo docker inspect app-caddy-1 --format '{{json .Mounts}}'` and `{{json .Config.Cmd}}`.
+
+3. Add the site block (Caddy issues and renews the certificate automatically):
+
+```bash
+server$ sudo cp "$CADDYFILE" "$CADDYFILE.bak-$(date +%F)"
+server$ sudo tee -a "$CADDYFILE" >/dev/null <<EOF
+
+cmo-new.mygyaan.ai {
+    reverse_proxy $GW:3100
+    request_body {
+        max_size 100MB
     }
 }
 EOF
-server$ sudo ln -sf /etc/nginx/sites-available/cmomygyaanai /etc/nginx/sites-enabled/
-server$ sudo rm -f /etc/nginx/sites-enabled/default   # ONLY if no other site uses this server (Phase 1b)
-server$ sudo nginx -t && sudo systemctl reload nginx
-server$ sudo certbot --nginx -d cmo-new.mygyaan.ai --redirect -m raghu@nandan.co.in --agree-tos -n
+server$ sudo docker exec -w /etc/caddy app-caddy-1 caddy validate --config /etc/caddy/Caddyfile
+server$ sudo docker exec -w /etc/caddy app-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+server$ sudo docker exec app-caddy-1 wget -qO- http://$GW:3100 | head -c 200   # Caddy can reach the app
 ```
 
-**Check:** open `https://cmo-new.mygyaan.ai` in a browser: padlock, homepage loads.
+**Check:** open `https://cmo-new.mygyaan.ai` in a browser: padlock, homepage loads. If the padlock is
+missing after 2 minutes: `sudo docker logs app-caddy-1 --tail 50`.
 
 ---
 
@@ -274,16 +284,18 @@ server$ psql "$DATABASE_URL" -f /tmp/fresh.sql && rm /tmp/fresh.sql
 
 ```bash
 server$ sed -i 's#NEXTAUTH_URL=.*#NEXTAUTH_URL="https://cmo.mygyaan.ai"#' .env
-server$ sudo sed -i 's/server_name cmo-new.mygyaan.ai;/server_name cmo.mygyaan.ai cmo-new.mygyaan.ai;/' /etc/nginx/sites-available/cmomygyaanai
-server$ sudo nginx -t && sudo systemctl reload nginx
 server$ pm2 restart cmomygyaanai
+server$ sudo sed -i 's/^cmo-new.mygyaan.ai {/cmo.mygyaan.ai, cmo-new.mygyaan.ai {/' "$CADDYFILE"   # CADDYFILE from Phase 9
+server$ sudo docker exec -w /etc/caddy app-caddy-1 caddy validate --config /etc/caddy/Caddyfile
 ```
 
 6. DNS panel: change `cmo` → **A record → `200.141.14.250`** (delete the old CNAME to Abacus if that's what it was).
-7. Wait until `dig +short cmo.mygyaan.ai` returns `200.141.14.250` (≤ 5 min with TTL 300), then:
+7. Wait until `dig +short cmo.mygyaan.ai` returns `200.141.14.250` (≤ 5 min with TTL 300), then reload
+   Caddy; it fetches the certificate for `cmo.mygyaan.ai` within a minute:
 
 ```bash
-server$ sudo certbot --nginx -d cmo.mygyaan.ai -d cmo-new.mygyaan.ai --redirect -n
+server$ sudo docker exec -w /etc/caddy app-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+server$ sudo docker logs app-caddy-1 --tail 20   # look for "certificate obtained"
 ```
 
 8. Open `https://cmo.mygyaan.ai`, log in, repeat the Phase 10 checklist quickly. Give the all-clear.
@@ -319,7 +331,7 @@ server$ mkdir -p ~/backups && crontab -e
 | `yarn install` says "This project's package.json defines packageManager / lockfile version" | Run `corepack enable` and use `yarn` 4, not `npm i -g yarn` |
 | `yarn build` killed / "JavaScript heap out of memory" | Add swap (Phase 2) or `NODE_OPTIONS=--max-old-space-size=4096 yarn build` |
 | Login loops or "callback error" | `NEXTAUTH_URL` must equal the hostname in the browser, including `https://` |
-| 502 Bad Gateway | `pm2 status` — app crashed; `pm2 logs` shows why (usually `.env`) |
+| 502 Bad Gateway | `pm2 status` — app crashed; `pm2 logs` shows why (usually `.env`). If PM2 is fine: `ufw status` must allow 172.16.0.0/12 → 3100 |
 | `Environment variable not found: DATABASE_URL` | Run `set -a && . ./.env && set +a` first |
-| Uploads fail | AWS_* not set yet (Phase 12 step 4), or Nginx `client_max_body_size` |
-| certbot fails | DNS not propagated yet — `dig +short <host>` must show `200.141.14.250` |
+| Uploads fail | AWS_* not set yet (Phase 12 step 4), or the Caddy `max_size` |
+| No certificate / Caddy log says "challenge failed" | DNS not propagated yet — `dig +short <host>` must show `200.141.14.250`; then `caddy reload` again |

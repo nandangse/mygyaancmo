@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.0.1.2",
+    "date": "2026-10-22",
+    "type": "docs",
+    "summary": "Deploy guide: Caddy-in-Docker proxy, host PostgreSQL, app on port 3100 (server findings 22-Oct)",
+    "commit": null
+  },
+  {
     "version": "1.0.1.0.1.1",
     "date": "2026-10-22",
     "type": "docs",
