@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.1.0.2",
+    "date": "2026-11-25",
+    "type": "docs",
+    "summary": "FlashGro teardown read against the built app; answers to open questions",
+    "commit": null
+  },
+  {
     "version": "1.0.1.1.0.1",
     "date": "2026-10-22",
     "type": "docs",

@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.1.0.2 — 2026-11-25 — docs
+
+FlashGro teardown read against the built app; answers to open questions
+
 ## v1.0.1.1.0.1 — 2026-10-22 — docs
 
 Competitor note: Different (different.ai) vs MyGyaan CMO
