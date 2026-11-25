@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.1.0.3",
+    "date": "2026-11-25",
+    "type": "docs",
+    "summary": "Spec: FlashGro-inspired UI, data model, ICP scoring, automations, signals for the CMO app",
+    "commit": null
+  },
+  {
     "version": "1.0.1.1.0.2",
     "date": "2026-11-25",
     "type": "docs",
