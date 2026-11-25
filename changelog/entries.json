@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.2.1.2",
+    "date": "2026-11-25",
+    "type": "docs",
+    "summary": "Go-live checklist file (docs/GO_LIVE_CHECKLIST.md)",
+    "commit": null
+  },
+  {
     "version": "1.0.1.2.1.1",
     "date": "2026-11-25",
     "type": "docs",

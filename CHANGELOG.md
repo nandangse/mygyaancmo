@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.2.1.2 — 2026-11-25 — docs
+
+Go-live checklist file (docs/GO_LIVE_CHECKLIST.md)
+
 ## v1.0.1.2.1.1 — 2026-11-25 — docs
 
 Go-live checklist for Dr Raghu
