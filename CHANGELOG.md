@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.2.1.1 — 2026-11-25 — docs
+
+Go-live checklist for Dr Raghu
+
 ## v1.0.1.2.1.0 — 2026-11-25 — feat
 
 Weekly CMO report, Apollo-aware CSV import with account auto-create, Next.js 16.4.6 (security fix), production build verified
