@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Typeahead, type Option } from '@/components/crm/typeahead';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +33,7 @@ const STATUS_STYLE: Record<string, string> = {
 function pct(n: number, d: number) { return d > 0 ? Math.round((n / d) * 100) : 0; }
 function fmtDate(s: string | null) { return s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—'; }
 
-const EMPTY = { name: '', subject: '', preheader: '', fromName: '', body: '', audience: 'all', listId: '' };
+const EMPTY = { name: '', subject: '', preheader: '', fromName: '', body: '', audience: 'all', listId: '', accountId: '', trackOpens: true };
 
 export function EmailCampaignsClient({ slug, canWrite, initCampaigns, lists, drafts, contactCount }: { slug: string; canWrite: boolean; initCampaigns: Campaign[]; lists: ListOpt[]; drafts: Draft[]; contactCount: number }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>(initCampaigns);
@@ -43,10 +44,18 @@ export function EmailCampaignsClient({ slug, canWrite, initCampaigns, lists, dra
   const [metricOpen, setMetricOpen] = useState<Campaign | null>(null);
   const [metricForm, setMetricForm] = useState<any>({});
 
+  const [account, setAccount] = useState<Option | null>(null);
+  const [accountCount, setAccountCount] = useState(0);
+  useEffect(() => {
+    if (!account) { setAccountCount(0); setForm((f) => ({ ...f, accountId: '' })); return; }
+    setForm((f) => ({ ...f, accountId: account.id }));
+    fetch(`/api/tenant/${slug}/contacts?accountId=${account.id}`).then((r) => r.json()).then((d) => setAccountCount(d.total ?? 0)).catch(() => setAccountCount(0));
+  }, [account, slug]);
   const audienceSize = useMemo(() => {
     if (form.audience === 'list') { const l = lists.find((x) => x.id === form.listId); return l ? l.count : 0; }
+    if (form.audience === 'account') return accountCount;
     return contactCount;
-  }, [form.audience, form.listId, lists, contactCount]);
+  }, [form.audience, form.listId, lists, contactCount, accountCount]);
 
   const resetForm = () => setForm({ ...EMPTY });
 
@@ -227,6 +236,7 @@ export function EmailCampaignsClient({ slug, canWrite, initCampaigns, lists, dra
                   <SelectContent>
                     <SelectItem value="all">All contacts ({contactCount.toLocaleString('en-IN')})</SelectItem>
                     {lists.length > 0 && <SelectItem value="list">Specific list…</SelectItem>}
+                    <SelectItem value="account">One account (ABM)…</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -244,7 +254,19 @@ export function EmailCampaignsClient({ slug, canWrite, initCampaigns, lists, dra
                 </Select>
               </div>
             )}
-            <div className="text-xs text-slate-500">Will reach <strong>{audienceSize.toLocaleString('en-IN')}</strong> recipient(s).</div>
+            {form.audience === 'account' && (
+              <div>
+                <Label>Account</Label>
+                <Typeahead className="mt-1" endpoint={`/api/tenant/${slug}/accounts/search`} value={account} onChange={setAccount} placeholder="Search accounts…" />
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2">
+              <div className="text-xs text-slate-500">Will reach <strong>{audienceSize.toLocaleString('en-IN')}</strong> recipient(s).</div>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-700" title="Switch off for enterprise inboxes behind Proofpoint / Mimecast / Barracuda: the open pixel can hurt placement">
+                <input type="checkbox" checked={form.trackOpens} onChange={(e) => setForm({ ...form, trackOpens: e.target.checked })} />
+                Track opens (pixel)
+              </label>
+            </div>
             <div>
               <Label>Subject line</Label>
               <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="A sharper way to source precision components" />

@@ -11,7 +11,8 @@
     "tenant:ddl": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/tenant-schema.sql",
     "tenant": "tsx --require dotenv/config scripts/tenant-db.ts",
     "bootstrap": "tsx --require dotenv/config scripts/bootstrap.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:seed": "tsx --require dotenv/config scripts/dev-seed.ts"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/bootstrap.ts"

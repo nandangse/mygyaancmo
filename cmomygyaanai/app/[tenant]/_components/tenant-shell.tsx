@@ -10,7 +10,7 @@ import {
   Menu, X, ChevronRight, CheckCircle2, XCircle, Rocket, Database,
   Brain, Swords, Factory, Mail, MessageCircle, Plug, Gauge, Send, Linkedin,
   Coins, Share2, Megaphone as Social, Lightbulb, Wrench, ClipboardList, KeyRound, PhoneCall, Workflow
-} from 'lucide-react';
+, Building2, Tag, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ type NavNode = {
 };
 
 const getNavTree = (slug: string): NavNode[] => [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: `/${slug}/dashboard` },
   { id: 'onboarding', label: 'Onboarding', icon: Rocket, href: `/${slug}/onboarding`, onboarding: true },
   { id: 'marketing-plan', label: 'Marketing Plan', icon: ClipboardList, href: `/${slug}/marketing-plan` },
   { id: 'rule-of-one', label: 'Rule of One', icon: Target, href: `/${slug}/rule-of-one` },
@@ -45,7 +46,10 @@ const getNavTree = (slug: string): NavNode[] => [
   },
   {
     id: 'database', label: 'Database', icon: Database, children: [
-      { id: 'lists', label: 'Lists & Contacts', icon: Contact, href: `/${slug}/lists`, flag: 'lists_contacts' },
+      { id: 'contacts', label: 'Contacts', icon: Users, href: `/${slug}/contacts` },
+      { id: 'accounts', label: 'Accounts', icon: Building2, href: `/${slug}/accounts` },
+      { id: 'tags', label: 'Tags', icon: Tag, href: `/${slug}/tags` },
+      { id: 'lists', label: 'Lists & Import', icon: Contact, href: `/${slug}/lists`, flag: 'lists_contacts' },
       { id: 'templates', label: 'Templates', icon: FileText, href: `/${slug}/templates`, flag: 'templates' },
       { id: 'sequences', label: 'Sequences', icon: GitBranch, href: `/${slug}/sequences`, flag: 'sequences' },
     ],
@@ -72,6 +76,7 @@ const getNavTree = (slug: string): NavNode[] => [
   { id: 'reports', label: 'Reports', icon: BarChart3, href: `/${slug}/reports`, flag: 'reports' },
   {
     id: 'channels', label: 'Channels', icon: Radio, children: [
+      { id: 'automations', label: 'Automations', icon: Workflow, href: `/${slug}/automations` },
       {
         id: 'ch-email', label: 'Email', icon: Mail, children: [
           { id: 'email-studio', label: 'Email Studio', icon: Mail, href: `/${slug}/email-studio`, flag: 'email_studio' },

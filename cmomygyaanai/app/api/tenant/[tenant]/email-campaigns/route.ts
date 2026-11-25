@@ -46,11 +46,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ten
   if (!subject) return NextResponse.json({ error: 'Subject line is required' }, { status: 400 });
 
   // resolve audience size
-  const audience: string = body.audience === 'list' && body.listId ? `list:${body.listId}` : 'all';
+  const audience: string = body.audience === 'list' && body.listId ? `list:${body.listId}` : body.audience === 'account' && body.accountId ? `account:${body.accountId}` : 'all';
   let recipients = 0;
   let audienceLabel = 'All contacts';
   let listId: string | null = null;
-  if (audience.startsWith('list:')) {
+  let accountId: string | null = null;
+  if (audience.startsWith('account:')) {
+    accountId = body.accountId;
+    const account = await ctx.db!.account.findFirst({ where: { id: accountId!, companyId: ctx.company.id }, select: { name: true, _count: { select: { contacts: true } } } });
+    if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 400 });
+    recipients = account._count.contacts;
+    audienceLabel = account.name;
+  } else if (audience.startsWith('list:')) {
     listId = body.listId;
     const list = await ctx.db!.list.findFirst({ where: { id: listId!, companyId: ctx.company.id }, select: { name: true, _count: { select: { listContacts: true } } } });
     if (!list) return NextResponse.json({ error: 'List not found' }, { status: 400 });
@@ -71,6 +78,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ten
       audience,
       audienceLabel,
       listId,
+      accountId,
+      trackOpens: body.trackOpens !== false,
       draftId: body.draftId ?? null,
       status: 'draft',
       recipients,

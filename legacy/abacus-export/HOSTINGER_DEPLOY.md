@@ -160,6 +160,7 @@ NEXTAUTH_URL="https://cmo-new.mygyaan.ai"        # staging now; changed at cutov
 ADMIN_EMAIL="raghu@nandan.co.in"                 # your /admin login
 ADMIN_PASSWORD="<strong, 12+ chars>"
 ADMIN_NAME="Dr Raghu"
+AUTOMATION_TICK_KEY="<openssl rand -hex 24>"       # cron secret for automations (Phase 12)
 ABACUSAI_API_KEY="<your key, or blank>"          # keeps AI + notification emails working during transition
 ```
 
@@ -310,6 +311,9 @@ server$ mkdir -p ~/backups && crontab -e
 # add:
 30 2 * * * for db in $(psql -tA "postgresql://mygyaan:<DBPASS>@localhost:5432/postgres" -c "select datname from pg_database where datname like 'cmo_%'"); do pg_dump "postgresql://mygyaan:<DBPASS>@localhost:5432/$db" | gzip > ~/backups/$db-$(date +\%F).sql.gz; done; find ~/backups -mtime +30 -delete
 ```
+
+   Also add the automations tick (resumes waiting flows every 5 minutes):
+   `*/5 * * * * curl -s -X POST -H "x-tick-key: <AUTOMATION_TICK_KEY>" https://cmo.mygyaan.ai/api/webhooks/automation-tick > /dev/null`
 
    This backs up the registry and every `cmo_t_*` tenant database. Tenant DBs on other servers
    are backed up there. Also switch on Hostinger's **weekly VPS snapshot** (VPS → Backups).

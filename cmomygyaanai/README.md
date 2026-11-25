@@ -47,7 +47,23 @@ yarn dev                        # then /admin/companies → Create Company
 Schema changes: edit `prisma/schema.prisma` → `yarn tenant:ddl` (also runs on `yarn build`) →
 `yarn tenant migrate-all` to push to the registry and every tenant database.
 
+## CRM modules (added 25-Nov-2026)
+
+| Page | What it does |
+| --- | --- |
+| `/[t]/dashboard` | 8 KPI tiles (qualified leads to sales first), lifecycle funnel, hot leads, triggers, activity, AMC renewals |
+| `/[t]/contacts`, `/[t]/contacts/[id]` | List with KPI row, filters, fixed-width table; Contact 360 with enrichment ring, engagement health, tags, data-card groups, Activity/Deals/Emails/WhatsApp/Calls/Triggers/Notes tabs, edit drawer |
+| `/[t]/accounts`, `/[t]/accounts/[id]` | Account list with ICP fit; Account 360 with account health, key contacts, fleet & install base |
+| `/[t]/tags` | Tag vocabulary with one-click manufacturing taxonomy |
+| `/[t]/automations`, `/[t]/automations/[id]` | Trigger → steps engine (email, WhatsApp, wait, condition, tags, score, webhook, goal), enrolment + re-entry rules, 3-panel builder, run log. Cron: `POST /api/webhooks/automation-tick` every 5 min with `x-tick-key` |
+| `/[t]/icp` → Fit scoring | Weighted ICP rules (total 100) → `icpFit` on every account and contact |
+| `/[t]/integrations` | Readiness OK/Fix panels (email, WhatsApp, AI) and sending-domain DNS verification (MX/SPF/DKIM/DMARC) |
+| Email campaigns | Audience by account (ABM) and an open-pixel toggle |
+
+Shared UI lives in `components/crm/` (page shell, KPI tile, score ring, health bars, data card, health check, pills, timeline, typeahead, filter bar, edit drawer, tag picker). Vocabulary and derived scores in `lib/crm.ts`; queries in `lib/crm-queries.ts`; engine in `lib/automations.ts`; fit in `lib/icp-scoring.ts`.
+
+Local demo data for review: `yarn dev:seed nandan` (never on production).
+
 ## Still on Abacus services
 
-AI calls, owner notification emails, a script tag in `app/layout.tsx` and the book-cover images still
-point at Abacus; see the table in `../legacy/abacus-export/README.md` for replacements.
+AI calls, owner notification emails and the book-cover images still point at Abacus; see the table in `../legacy/abacus-export/README.md` for replacements.

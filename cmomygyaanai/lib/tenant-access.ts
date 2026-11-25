@@ -97,3 +97,8 @@ export async function callLLMText(prompt: string, maxTokens = 3000): Promise<str
   const data = await response.json();
   return String(data?.choices?.[0]?.message?.content ?? '').trim();
 }
+
+// Roles allowed to create/edit tenant data (admins, client users, agency RMs).
+export function canWriteTenant(ctx: TenantContext): boolean {
+  return !!ctx.isAdmin || ctx.role === 'client_user' || ctx.role === 'agency_rm';
+}

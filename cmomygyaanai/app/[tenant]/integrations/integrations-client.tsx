@@ -28,7 +28,7 @@ const CAT: Record<string, { label: string; icon: any }> = {
 const CAT_ORDER = ['email', 'whatsapp', 'calling', 'voice', 'linkedin', 'crm', 'enrichment', 'analytics'];
 const REQ_STATUS: Record<string, string> = { requested: 'bg-slate-100 text-slate-600', in_review: 'bg-amber-100 text-amber-700', building: 'bg-sky-100 text-sky-700', done: 'bg-emerald-100 text-emerald-700', rejected: 'bg-rose-100 text-rose-700' };
 
-export function IntegrationsClient({ slug, canWrite, catalogue, configMap: initCfg, requests: initReq }: { slug: string; canWrite: boolean; catalogue: Integration[]; configMap: Record<string, Cfg>; requests: Req[] }) {
+export function IntegrationsClient({ slug, canWrite, catalogue, configMap: initCfg, requests: initReq, top }: { slug: string; canWrite: boolean; catalogue: Integration[]; configMap: Record<string, Cfg>; requests: Req[]; top?: React.ReactNode }) {
   const [configMap, setConfigMap] = useState<Record<string, Cfg>>(initCfg);
   const [requests, setRequests] = useState<Req[]>(initReq);
   const [cfgOpen, setCfgOpen] = useState(false);
@@ -90,6 +90,7 @@ export function IntegrationsClient({ slug, canWrite, catalogue, configMap: initC
         </div>
         {canWrite && <Button variant="outline" onClick={() => setReqOpen(true)}><Plus className="h-4 w-4 mr-1" /> Request integration</Button>}
       </div>
+      {top}
 
       {CAT_ORDER.map((cat) => {
         const items = catalogue.filter((i) => i.category === cat);

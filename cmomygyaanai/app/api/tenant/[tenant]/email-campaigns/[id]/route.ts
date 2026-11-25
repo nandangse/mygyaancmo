@@ -44,6 +44,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ te
         select: { email: true },
       });
       recipientEmails = contacts.map((c) => c.email!).filter(Boolean);
+    } else if (existing.audience.startsWith('account:') && existing.accountId) {
+      const contacts = await ctx.db!.contact.findMany({
+        where: { companyId: ctx.company.id, accountId: existing.accountId, email: { not: null }, optInEmail: { not: false } },
+        select: { email: true },
+      });
+      recipientEmails = contacts.map((c) => c.email!).filter(Boolean);
     } else {
       const contacts = await ctx.db!.contact.findMany({
         where: { companyId: ctx.company.id, email: { not: null }, optInEmail: { not: false } },
@@ -117,6 +123,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ te
       if (!list) return NextResponse.json({ error: 'List not found' }, { status: 400 });
       data.audience = `list:${body.listId}`; data.listId = body.listId; data.audienceLabel = list.name; data.recipients = list._count.listContacts;
     }
+    if (body.audience === 'account' && body.accountId) {
+      const account = await ctx.db!.account.findFirst({ where: { id: body.accountId, companyId: ctx.company.id }, select: { name: true, _count: { select: { contacts: true } } } });
+      if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 400 });
+      data.audience = `account:${body.accountId}`; data.accountId = body.accountId; data.listId = null; data.audienceLabel = account.name; data.recipients = account._count.contacts;
+    }
+    if (typeof body.trackOpens === 'boolean') data.trackOpens = body.trackOpens;
   }
 
   const updated = await ctx.db!.emailCampaign.update({ where: { id }, data });

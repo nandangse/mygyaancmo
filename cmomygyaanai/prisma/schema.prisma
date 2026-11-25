@@ -112,6 +112,11 @@ model Company {
   voiceLeads        VoiceLead[]
   workflowRuns      WorkflowRun[]
   workflowCampaigns WorkflowCampaign[]
+  tags              Tag[]
+  triggerEvents     TriggerEvent[]
+  activities        Activity[]
+  automations       Automation[]
+  sendingDomains    SendingDomain[]
 
   @@index([agencyId])
   @@index([slug])
@@ -413,6 +418,7 @@ model IcpProfile {
   ltvVsDealSize    String?  // Q8
   antiIcp          String?  @db.Text // Q9
   icpSentence      String?  @db.Text
+  scoring          Json?    // { criteria: [{ key, label, weight, values[] }], thresholds: { high, medium } }
   version          Int      @default(1)
   confirmedBy      String?
   confirmedAt      DateTime?
@@ -641,6 +647,34 @@ model Contact {
   scoreUpdatedAt DateTime?
   optInEmail     Boolean   @default(false)
   optInWhatsapp  Boolean   @default(false)
+
+  // ─── Contact 360 (FlashGro-inspired data groups) ───
+  lifecycleStage      String    @default("contact") // contact | subscriber | lead | mql | sql | opportunity | customer | evangelist
+  ownerId             String?
+  buyingRole          String?   // economic | technical | user | procurement | influencer
+  department          String?
+  seniority           String?   // c_level | vp | director | manager | staff
+  linkedinUrl         String?
+  city                String?
+  state               String?
+  country             String?
+  region              String?
+  buyIntent           Int?      // 0-100
+  churnRisk           Int?      // 0-100
+  upsellReadiness     Int?      // 0-100
+  amcRenewalDate      DateTime?
+  sparesSpend12m      Float?
+  ltvEstimate         Float?
+  linkedinEngagements Int       @default(0)
+  consentEmail        Boolean?
+  consentWhatsapp     Boolean?
+  consentSource       String?   // website_form | expo | referral | purchased_list | existing_customer
+  consentAt           DateTime?
+  retentionUntil      DateTime?
+  enrichment          Json?
+  enrichedAt          DateTime?
+  lastActivityAt      DateTime?
+  notes               String?   @db.Text
   status         String    @default("active")
   createdBy      String?
   createdAt      DateTime  @default(now())
@@ -654,6 +688,10 @@ model Contact {
   whatsappMessages  WhatsappMessage[]
   callLogs          CallLog[]
   emailPersonalizations EmailPersonalization[]
+  contactTags           ContactTag[]
+  triggerEvents         TriggerEvent[]
+  activities            Activity[]
+  automationRuns        AutomationRun[]
 
   @@index([companyId])
   @@index([accountId])
@@ -671,6 +709,33 @@ model Account {
   sizeBand    String?
   enrichment  Json?
   icpFit      Float?
+  // ─── Account 360 ───
+  industry          String?
+  employees         Int?
+  revenueBand       String?
+  hq                String?
+  companyType       String?   // psu | private | mnc | government | startup
+  status            String    @default("prospect") // prospect | customer | partner | lost
+  website           String?
+  phone             String?
+  linkedinUrl       String?
+  description       String?   @db.Text
+  ownerId           String?
+  city              String?
+  state             String?
+  country           String?
+  fleetSize         Int?
+  fleetAge          String?
+  airportsServed    String?
+  licences          String?
+  currentBrands     String?   // competitor GSE brands in the fleet
+  healthExec        Int?      // 0-100 executive access
+  healthEngagement  Int?
+  healthDataSignal  Int?
+  healthRenewalRisk Int?
+  enrichedAt        DateTime?
+  lastActivityAt    DateTime?
+  notes             String?   @db.Text
   createdBy   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -678,6 +743,9 @@ model Account {
   contacts      Contact[]
   opportunities Opportunity[]
   deals         Deal[]
+  accountTags   AccountTag[]
+  triggerEvents TriggerEvent[]
+  activities    Activity[]
 
   @@index([companyId])
   @@map("accounts")
@@ -1385,6 +1453,9 @@ model Segment {
   company     Company  @relation(fields: [companyId], references: [id])
   name        String
   description String?  @db.Text
+  kind        String   @default("manual") // manual | dynamic
+  filter      Json?    // dynamic: { lifecycleStage?, band?, tags?, industry?, country?, icpFitMin?, scoreMin? }
+  contactCount Int     @default(0)
   createdBy   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1700,6 +1771,9 @@ model EmailCampaign {
   audience      String    @default("all") // all | list:<listId>
   audienceLabel String?
   listId        String?
+  accountId     String?   // audience = account:<id>
+  segmentId     String?   // audience = segment:<id>
+  trackOpens    Boolean   @default(true) // off = no open pixel (B2B inbox placement)
   status        String    @default("draft") // draft | scheduled | sending | sent | paused
   scheduledAt   DateTime?
   sentAt        DateTime?
@@ -1996,4 +2070,168 @@ model PasswordSetToken {
   createdAt DateTime @default(now())
 
   @@map("password_set_tokens")
+}
+
+// ─── CRM additions (25-Nov-2026): tags, trigger events, activity timeline, automations, sending domains ───
+
+model Tag {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  name      String
+  category  String?  // buyer_role | fleet_type | industry | region | source | stage | custom
+  color     String?  // violet | emerald | amber | sky | rose | slate
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  contactTags ContactTag[]
+  accountTags AccountTag[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("tags")
+}
+
+model ContactTag {
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+  @@map("contact_tags")
+}
+
+model AccountTag {
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([accountId, tagId])
+  @@index([tagId])
+  @@map("account_tags")
+}
+
+// Buying triggers observed on an account or contact (tender, expansion, RFQ, expo…).
+model TriggerEvent {
+  id         String    @id @default(uuid())
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id])
+  contactId  String?
+  contact    Contact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  accountId  String?
+  account    Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type       String    // rfq_received | expo_met | quote_sent | quote_viewed | amc_due | tender_published | airport_expansion | new_contract | new_ceo | funding | other
+  title      String
+  detail     String?   @db.Text
+  source     String?
+  url        String?
+  occurredAt DateTime  @default(now())
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([companyId, occurredAt])
+  @@index([contactId])
+  @@index([accountId])
+  @@map("trigger_events")
+}
+
+// One timeline for a contact/account: notes, calls, meetings, emails, system events.
+model Activity {
+  id         String    @id @default(uuid())
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id])
+  contactId  String?
+  contact    Contact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  accountId  String?
+  account    Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type       String    // note | call | email | meeting | whatsapp | visit | score | handoff | tag | automation | system
+  title      String
+  body       String?   @db.Text
+  outcome    String?   // calls: completed | missed | voicemail | busy | no_answer
+  meta       Json?
+  actorId    String?
+  occurredAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  @@index([companyId, occurredAt])
+  @@index([contactId, occurredAt])
+  @@index([accountId, occurredAt])
+  @@map("activities")
+}
+
+// Automation: trigger → ordered steps, with enrolment + re-entry rules.
+model Automation {
+  id                    String   @id @default(uuid())
+  companyId             String
+  company               Company  @relation(fields: [companyId], references: [id])
+  name                  String
+  description           String?
+  status                String   @default("draft") // draft | active | paused
+  trigger               String   // see lib/automations.ts TRIGGERS
+  triggerConfig         Json?    // { listId?, tagId?, stage?, scoreMin?, eventType? }
+  enrolmentMode         String   @default("forward_only") // forward_only | retroactive | continuous
+  reentryPolicy         String   @default("never") // never | always | once_per_days
+  reentryDays           Int?
+  includeUncertainOpens Boolean  @default(false)
+  steps                 Json     @default("[]") // [{ id, type, config }]
+  enrolled              Int      @default(0)
+  completed             Int      @default(0)
+  goalsHit              Int      @default(0)
+  lastRunAt             DateTime?
+  createdBy             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  runs AutomationRun[]
+
+  @@index([companyId, status])
+  @@map("automations")
+}
+
+model AutomationRun {
+  id           String     @id @default(uuid())
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  contactId    String
+  contact      Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status       String     @default("active") // active | waiting | completed | goal | exited | failed
+  stepIndex    Int        @default(0)
+  resumeAt     DateTime?
+  log          Json?      // [{ at, step, type, result }]
+  enteredAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([automationId, status])
+  @@index([contactId])
+  @@index([status, resumeAt])
+  @@map("automation_runs")
+}
+
+// Per-tenant email sending domain with DNS verification state.
+model SendingDomain {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  domain        String
+  status        String    @default("pending") // pending | verified | failed
+  mxOk          Boolean   @default(false)
+  spfOk         Boolean   @default(false)
+  dkimOk        Boolean   @default(false)
+  dmarcOk       Boolean   @default(false)
+  dkimSelector  String    @default("mygyaan")
+  isDefault     Boolean   @default(false)
+  lastCheckedAt DateTime?
+  checkLog      Json?
+  createdBy     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([companyId, domain])
+  @@index([companyId])
+  @@map("sending_domains")
 }

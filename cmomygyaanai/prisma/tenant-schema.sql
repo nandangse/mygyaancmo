@@ -300,6 +300,7 @@ CREATE TABLE "icp_profiles" (
     "ltvVsDealSize" TEXT,
     "antiIcp" TEXT,
     "icpSentence" TEXT,
+    "scoring" JSONB,
     "version" INTEGER NOT NULL DEFAULT 1,
     "confirmedBy" TEXT,
     "confirmedAt" TIMESTAMP(3),
@@ -493,6 +494,32 @@ CREATE TABLE "contacts" (
     "scoreUpdatedAt" TIMESTAMP(3),
     "optInEmail" BOOLEAN NOT NULL DEFAULT false,
     "optInWhatsapp" BOOLEAN NOT NULL DEFAULT false,
+    "lifecycleStage" TEXT NOT NULL DEFAULT 'contact',
+    "ownerId" TEXT,
+    "buyingRole" TEXT,
+    "department" TEXT,
+    "seniority" TEXT,
+    "linkedinUrl" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "region" TEXT,
+    "buyIntent" INTEGER,
+    "churnRisk" INTEGER,
+    "upsellReadiness" INTEGER,
+    "amcRenewalDate" TIMESTAMP(3),
+    "sparesSpend12m" DOUBLE PRECISION,
+    "ltvEstimate" DOUBLE PRECISION,
+    "linkedinEngagements" INTEGER NOT NULL DEFAULT 0,
+    "consentEmail" BOOLEAN,
+    "consentWhatsapp" BOOLEAN,
+    "consentSource" TEXT,
+    "consentAt" TIMESTAMP(3),
+    "retentionUntil" TIMESTAMP(3),
+    "enrichment" JSONB,
+    "enrichedAt" TIMESTAMP(3),
+    "lastActivityAt" TIMESTAMP(3),
+    "notes" TEXT,
     "status" TEXT NOT NULL DEFAULT 'active',
     "createdBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -512,6 +539,32 @@ CREATE TABLE "accounts" (
     "sizeBand" TEXT,
     "enrichment" JSONB,
     "icpFit" DOUBLE PRECISION,
+    "industry" TEXT,
+    "employees" INTEGER,
+    "revenueBand" TEXT,
+    "hq" TEXT,
+    "companyType" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'prospect',
+    "website" TEXT,
+    "phone" TEXT,
+    "linkedinUrl" TEXT,
+    "description" TEXT,
+    "ownerId" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "fleetSize" INTEGER,
+    "fleetAge" TEXT,
+    "airportsServed" TEXT,
+    "licences" TEXT,
+    "currentBrands" TEXT,
+    "healthExec" INTEGER,
+    "healthEngagement" INTEGER,
+    "healthDataSignal" INTEGER,
+    "healthRenewalRisk" INTEGER,
+    "enrichedAt" TIMESTAMP(3),
+    "lastActivityAt" TIMESTAMP(3),
+    "notes" TEXT,
     "createdBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -1139,6 +1192,9 @@ CREATE TABLE "segments" (
     "companyId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
+    "kind" TEXT NOT NULL DEFAULT 'manual',
+    "filter" JSONB,
+    "contactCount" INTEGER NOT NULL DEFAULT 0,
     "createdBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -1397,6 +1453,9 @@ CREATE TABLE "email_campaigns" (
     "audience" TEXT NOT NULL DEFAULT 'all',
     "audienceLabel" TEXT,
     "listId" TEXT,
+    "accountId" TEXT,
+    "segmentId" TEXT,
+    "trackOpens" BOOLEAN NOT NULL DEFAULT true,
     "status" TEXT NOT NULL DEFAULT 'draft',
     "scheduledAt" TIMESTAMP(3),
     "sentAt" TIMESTAMP(3),
@@ -1653,6 +1712,134 @@ CREATE TABLE "password_set_tokens" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "password_set_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "tags" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "category" TEXT,
+    "color" TEXT,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "tags_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "contact_tags" (
+    "contactId" TEXT NOT NULL,
+    "tagId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "contact_tags_pkey" PRIMARY KEY ("contactId","tagId")
+);
+
+-- CreateTable
+CREATE TABLE "account_tags" (
+    "accountId" TEXT NOT NULL,
+    "tagId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "account_tags_pkey" PRIMARY KEY ("accountId","tagId")
+);
+
+-- CreateTable
+CREATE TABLE "trigger_events" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "contactId" TEXT,
+    "accountId" TEXT,
+    "type" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "detail" TEXT,
+    "source" TEXT,
+    "url" TEXT,
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "trigger_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "activities" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "contactId" TEXT,
+    "accountId" TEXT,
+    "type" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "body" TEXT,
+    "outcome" TEXT,
+    "meta" JSONB,
+    "actorId" TEXT,
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "activities_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "automations" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'draft',
+    "trigger" TEXT NOT NULL,
+    "triggerConfig" JSONB,
+    "enrolmentMode" TEXT NOT NULL DEFAULT 'forward_only',
+    "reentryPolicy" TEXT NOT NULL DEFAULT 'never',
+    "reentryDays" INTEGER,
+    "includeUncertainOpens" BOOLEAN NOT NULL DEFAULT false,
+    "steps" JSONB NOT NULL DEFAULT '[]',
+    "enrolled" INTEGER NOT NULL DEFAULT 0,
+    "completed" INTEGER NOT NULL DEFAULT 0,
+    "goalsHit" INTEGER NOT NULL DEFAULT 0,
+    "lastRunAt" TIMESTAMP(3),
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "automations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "automation_runs" (
+    "id" TEXT NOT NULL,
+    "automationId" TEXT NOT NULL,
+    "contactId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "stepIndex" INTEGER NOT NULL DEFAULT 0,
+    "resumeAt" TIMESTAMP(3),
+    "log" JSONB,
+    "enteredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "automation_runs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "sending_domains" (
+    "id" TEXT NOT NULL,
+    "companyId" TEXT NOT NULL,
+    "domain" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "mxOk" BOOLEAN NOT NULL DEFAULT false,
+    "spfOk" BOOLEAN NOT NULL DEFAULT false,
+    "dkimOk" BOOLEAN NOT NULL DEFAULT false,
+    "dmarcOk" BOOLEAN NOT NULL DEFAULT false,
+    "dkimSelector" TEXT NOT NULL DEFAULT 'mygyaan',
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "lastCheckedAt" TIMESTAMP(3),
+    "checkLog" JSONB,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "sending_domains_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -2057,6 +2244,54 @@ CREATE INDEX "workflow_run_versions_runId_idx" ON "workflow_run_versions"("runId
 -- CreateIndex
 CREATE UNIQUE INDEX "password_set_tokens_token_key" ON "password_set_tokens"("token");
 
+-- CreateIndex
+CREATE INDEX "tags_companyId_idx" ON "tags"("companyId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tags_companyId_name_key" ON "tags"("companyId", "name");
+
+-- CreateIndex
+CREATE INDEX "contact_tags_tagId_idx" ON "contact_tags"("tagId");
+
+-- CreateIndex
+CREATE INDEX "account_tags_tagId_idx" ON "account_tags"("tagId");
+
+-- CreateIndex
+CREATE INDEX "trigger_events_companyId_occurredAt_idx" ON "trigger_events"("companyId", "occurredAt");
+
+-- CreateIndex
+CREATE INDEX "trigger_events_contactId_idx" ON "trigger_events"("contactId");
+
+-- CreateIndex
+CREATE INDEX "trigger_events_accountId_idx" ON "trigger_events"("accountId");
+
+-- CreateIndex
+CREATE INDEX "activities_companyId_occurredAt_idx" ON "activities"("companyId", "occurredAt");
+
+-- CreateIndex
+CREATE INDEX "activities_contactId_occurredAt_idx" ON "activities"("contactId", "occurredAt");
+
+-- CreateIndex
+CREATE INDEX "activities_accountId_occurredAt_idx" ON "activities"("accountId", "occurredAt");
+
+-- CreateIndex
+CREATE INDEX "automations_companyId_status_idx" ON "automations"("companyId", "status");
+
+-- CreateIndex
+CREATE INDEX "automation_runs_automationId_status_idx" ON "automation_runs"("automationId", "status");
+
+-- CreateIndex
+CREATE INDEX "automation_runs_contactId_idx" ON "automation_runs"("contactId");
+
+-- CreateIndex
+CREATE INDEX "automation_runs_status_resumeAt_idx" ON "automation_runs"("status", "resumeAt");
+
+-- CreateIndex
+CREATE INDEX "sending_domains_companyId_idx" ON "sending_domains"("companyId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "sending_domains_companyId_domain_key" ON "sending_domains"("companyId", "domain");
+
 -- AddForeignKey
 ALTER TABLE "companies" ADD CONSTRAINT "companies_agencyId_fkey" FOREIGN KEY ("agencyId") REFERENCES "agencies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -2392,4 +2627,49 @@ ALTER TABLE "workflow_runs" ADD CONSTRAINT "workflow_runs_campaignId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "workflow_run_versions" ADD CONSTRAINT "workflow_run_versions_runId_fkey" FOREIGN KEY ("runId") REFERENCES "workflow_runs"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tags" ADD CONSTRAINT "tags_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "contact_tags" ADD CONSTRAINT "contact_tags_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "contact_tags" ADD CONSTRAINT "contact_tags_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account_tags" ADD CONSTRAINT "account_tags_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "accounts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account_tags" ADD CONSTRAINT "account_tags_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "trigger_events" ADD CONSTRAINT "trigger_events_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "trigger_events" ADD CONSTRAINT "trigger_events_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "trigger_events" ADD CONSTRAINT "trigger_events_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "accounts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activities" ADD CONSTRAINT "activities_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activities" ADD CONSTRAINT "activities_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "activities" ADD CONSTRAINT "activities_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "accounts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "automations" ADD CONSTRAINT "automations_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "automation_runs" ADD CONSTRAINT "automation_runs_automationId_fkey" FOREIGN KEY ("automationId") REFERENCES "automations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "automation_runs" ADD CONSTRAINT "automation_runs_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "contacts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "sending_domains" ADD CONSTRAINT "sending_domains_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

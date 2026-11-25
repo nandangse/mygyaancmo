@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.2.0.0 — 2026-11-25 — feat
+
+CRM: Contact/Account 360, dashboard, tags, automations engine + builder, ICP fit scoring, integration readiness + sending domains, ABM campaign audience
+
 ## v1.0.1.1.0.4 — 2026-11-25 — docs
 
 Spec: observed FlashGro UI language from the 11 screenshots; reference screens added

@@ -4,12 +4,16 @@ import { redirect } from 'next/navigation';
 import { resolveTenant } from '@/lib/tenant-access';
 import { prisma } from '@/lib/db';
 import { IntegrationsClient } from './integrations-client';
+import { Readiness } from './readiness';
+import { integrationHealth } from '@/lib/integration-health';
 
 export default async function IntegrationsPage({ params }: { params: Promise<{ tenant: string }> }) {
   const { tenant } = await params;
   const ctx = await resolveTenant(tenant);
   if (ctx.error) redirect('/login');
 
+  const [health, domains] = await Promise.all([integrationHealth(ctx.db!, ctx.company.id), ctx.db!.sendingDomain.findMany({ where: { companyId: ctx.company.id }, orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] })]);
+  const canWrite = !!ctx.isAdmin || ctx.role === 'client_user' || ctx.role === 'agency_rm';
   const [catalogue, configs, requests] = await Promise.all([
     prisma.integration.findMany({ orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }] }),
     ctx.db!.integrationConfig.findMany({ where: { companyId: ctx.company.id } }),
@@ -21,6 +25,7 @@ export default async function IntegrationsPage({ params }: { params: Promise<{ t
 
   return (
     <IntegrationsClient
+      top={<Readiness tenant={tenant} health={health} domains={JSON.parse(JSON.stringify(domains))} canWrite={canWrite} />}
       slug={tenant}
       canWrite={!!ctx.isAdmin || ctx.role === 'client_user' || ctx.role === 'agency_rm'}
       catalogue={catalogue.map((i) => ({ key: i.key, name: i.name, category: i.category, description: i.description, status: i.status, isDefault: i.isDefault, fields: (i.fields as any) ?? [] })) as any}

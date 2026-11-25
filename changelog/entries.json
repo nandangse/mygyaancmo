@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.2.0.0",
+    "date": "2026-11-25",
+    "type": "feat",
+    "summary": "CRM: Contact/Account 360, dashboard, tags, automations engine + builder, ICP fit scoring, integration readiness + sending domains, ABM campaign audience",
+    "commit": null
+  },
+  {
     "version": "1.0.1.1.0.4",
     "date": "2026-11-25",
     "type": "docs",
