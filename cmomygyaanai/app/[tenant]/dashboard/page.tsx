@@ -54,7 +54,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
     <PageShell
       title="Dashboard"
       subtitle={`${firstName ? `Welcome back, ${firstName}. ` : ''}${ctx.company.name} · ${now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}`}
-      actions={<Link href={`${base}/reports`} className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Weekly report <ArrowRight className="h-4 w-4" /></Link>}
+      actions={<Link href={`${base}/reports/weekly`} className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Weekly CMO report <ArrowRight className="h-4 w-4" /></Link>}
       kpis={
         <>
           <KpiTile icon={Send} label="Qualified leads to sales" value={handoffs} sub="this month" delta={{ value: handoffs - handoffsPrev, label: 'vs last month' }} tone="violet" href={`${base}/inbox`} linkLabel="Inbox & MQLs" />

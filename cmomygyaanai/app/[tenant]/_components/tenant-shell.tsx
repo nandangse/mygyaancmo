@@ -74,6 +74,7 @@ const getNavTree = (slug: string): NavNode[] => [
     ],
   },
   { id: 'reports', label: 'Reports', icon: BarChart3, href: `/${slug}/reports`, flag: 'reports' },
+  { id: 'weekly-report', label: 'Weekly CMO Report', icon: BarChart3, href: `/${slug}/reports/weekly` },
   {
     id: 'channels', label: 'Channels', icon: Radio, children: [
       { id: 'automations', label: 'Automations', icon: Workflow, href: `/${slug}/automations` },

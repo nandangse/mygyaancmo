@@ -59,6 +59,8 @@ Schema changes: edit `prisma/schema.prisma` → `yarn tenant:ddl` (also runs on 
 | `/[t]/icp` → Fit scoring | Weighted ICP rules (total 100) → `icpFit` on every account and contact |
 | `/[t]/integrations` | Readiness OK/Fix panels (email, WhatsApp, AI) and sending-domain DNS verification (MX/SPF/DKIM/DMARC) |
 | Email campaigns | Audience by account (ABM) and an open-pixel toggle |
+| `/[t]/reports/weekly` | Weekly CMO report: this week vs last, next-week actions (rules-based), movers, triggers, what is due |
+| Lists → Upload CSV | Recognises Apollo / Sales Navigator columns; a Company or work-email domain creates or links the account |
 
 Shared UI lives in `components/crm/` (page shell, KPI tile, score ring, health bars, data card, health check, pills, timeline, typeahead, filter bar, edit drawer, tag picker). Vocabulary and derived scores in `lib/crm.ts`; queries in `lib/crm-queries.ts`; engine in `lib/automations.ts`; fit in `lib/icp-scoring.ts`.
 

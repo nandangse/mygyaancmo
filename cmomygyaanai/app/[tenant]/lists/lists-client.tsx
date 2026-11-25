@@ -15,10 +15,22 @@ type Contact = { id: string; name: string; email: string | null };
 
 const NONE = '__none';
 const FIELD_OPTS: { key: string; label: string }[] = [
-  { key: 'name', label: 'Name' },
+  { key: 'name', label: 'Full name' },
+  { key: 'firstName', label: 'First name' },
+  { key: 'lastName', label: 'Last name' },
   { key: 'email', label: 'Email' },
-  { key: 'phone', label: 'Phone' },
+  { key: 'phone', label: 'Phone / mobile' },
   { key: 'title', label: 'Job title' },
+  { key: 'department', label: 'Department' },
+  { key: 'seniority', label: 'Seniority' },
+  { key: 'company', label: 'Company (creates account)' },
+  { key: 'website', label: 'Company website / domain' },
+  { key: 'industry', label: 'Industry' },
+  { key: 'employees', label: 'Employees' },
+  { key: 'linkedin', label: 'LinkedIn URL' },
+  { key: 'city', label: 'City' },
+  { key: 'state', label: 'State' },
+  { key: 'country', label: 'Country' },
 ];
 
 // Minimal CSV parser that respects double-quoted fields and escaped quotes.
@@ -43,14 +55,28 @@ function parseCsv(text: string): string[][] {
 }
 
 // Guess a sensible default mapping from header names.
+// Recognises Apollo, LinkedIn Sales Navigator and plain CRM exports.
 function guessMapping(headers: string[]): Record<string, string> {
   const m: Record<string, string> = {};
+  const set = (k: string, i: number) => { if (m[k] === undefined) m[k] = String(i); };
   headers.forEach((h, i) => {
     const l = h.toLowerCase().trim();
-    if (!m.email && /e-?mail/.test(l)) m.email = String(i);
-    else if (!m.name && /(full ?name|^name|contact)/.test(l)) m.name = String(i);
-    else if (!m.phone && /(phone|mobile|tel|cell)/.test(l)) m.phone = String(i);
-    else if (!m.title && /(title|designation|role|position)/.test(l)) m.title = String(i);
+    if (/^(first ?name)$/.test(l)) set('firstName', i);
+    else if (/^(last ?name|surname)$/.test(l)) set('lastName', i);
+    else if (/(full ?name|^name$|contact name|^person$)/.test(l)) set('name', i);
+    else if (/^(e-?mail|work e-?mail|email address|primary email)$/.test(l) || (/e-?mail/.test(l) && !/status|verified|domain|secondary|personal/.test(l))) set('email', i);
+    else if (/(mobile|work direct phone|direct phone|phone number|^phone$|corporate phone|cell)/.test(l) && !/company phone|hq phone/.test(l)) set('phone', i);
+    else if (/^(title|job title|designation|role|position)$/.test(l)) set('title', i);
+    else if (/^(department|departments)$/.test(l)) set('department', i);
+    else if (/^(seniority|level)$/.test(l)) set('seniority', i);
+    else if (/^(company|company name|organization|organisation|account|employer|company name for emails)$/.test(l)) set('company', i);
+    else if (/^(website|company website|domain|company domain|url)$/.test(l)) set('website', i);
+    else if (/^(industry|company industry)$/.test(l)) set('industry', i);
+    else if (/^(# ?employees|employees|number of employees|company size|headcount)$/.test(l)) set('employees', i);
+    else if (/(person linkedin url|linkedin url|linkedin|profile url)/.test(l) && !/company linkedin/.test(l)) set('linkedin', i);
+    else if (/^(city|person city)$/.test(l)) set('city', i);
+    else if (/^(state|person state|region)$/.test(l)) set('state', i);
+    else if (/^(country|person country)$/.test(l)) set('country', i);
   });
   return m;
 }
@@ -86,10 +112,11 @@ export function ListsClient({ companyId, lists: initial, contacts, tenant, canWr
   };
 
   const runCsvImport = async () => {
-    if (csvMap.email === undefined && csvMap.name === undefined) { toast.error('Map at least a Name or Email column.'); return; }
+    if (csvMap.email === undefined && csvMap.name === undefined && csvMap.firstName === undefined) { toast.error('Map at least a Name or Email column.'); return; }
     const contacts = csvData.map(r => {
       const pick = (k: string) => (csvMap[k] !== undefined && csvMap[k] !== NONE ? (r[parseInt(csvMap[k], 10)] || '').trim() : '');
-      return { name: pick('name'), email: pick('email'), phone: pick('phone'), title: pick('title') };
+      const name = pick('name') || [pick('firstName'), pick('lastName')].filter(Boolean).join(' ');
+      return { name, email: pick('email'), phone: pick('phone'), title: pick('title'), department: pick('department'), seniority: pick('seniority'), company: pick('company'), website: pick('website'), industry: pick('industry'), employees: pick('employees'), linkedin: pick('linkedin'), city: pick('city'), state: pick('state'), country: pick('country') };
     }).filter(c => c.email || c.name);
     if (contacts.length === 0) { toast.error('No usable rows after mapping.'); return; }
     setImporting(true);
@@ -97,7 +124,7 @@ export function ListsClient({ companyId, lists: initial, contacts, tenant, canWr
       const res = await fetch(`/api/tenant/${tenant}/contacts/import`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contacts, listName: csvListName, createList: true }) });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Import failed');
-      toast.success(`Imported ${d.created} new, ${d.existing} existing — ${d.linked} added to “${d.listName}”`);
+      toast.success(`Imported ${d.created} new, ${d.existing} existing — ${d.linked} added to “${d.listName}”${d.accountsCreated ? ` · ${d.accountsCreated} accounts created` : ''}`);
       setCsvOpen(false); setCsvHeaders([]); setCsvData([]); setCsvMap({}); setCsvFileName(''); setCsvListName('');
       reload();
     } catch (e: any) { toast.error(e.message || 'Import failed'); } finally { setImporting(false); }
@@ -177,7 +204,7 @@ export function ListsClient({ companyId, lists: initial, contacts, tenant, canWr
                   <div>
                     <Label>CSV file</Label>
                     <input type="file" accept=".csv,text/csv" className="block w-full text-sm mt-1 file:mr-3 file:rounded-md file:border-0 file:bg-primary file:text-white file:px-3 file:py-1.5 file:text-sm hover:file:bg-primary/90" onChange={e => { const f = e.target.files?.[0]; if (f) onCsvFile(f); }} />
-                    <p className="text-xs text-muted-foreground mt-1">First row should be column headers. We’ll auto-detect name, email, phone and title.</p>
+                    <p className="text-xs text-muted-foreground mt-1">First row should be column headers. Apollo and Sales Navigator exports are recognised automatically; a Company column creates or links the account.</p>
                   </div>
                   {csvHeaders.length > 0 && (
                     <>

@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.2.1.0",
+    "date": "2026-11-25",
+    "type": "feat",
+    "summary": "Weekly CMO report, Apollo-aware CSV import with account auto-create, Next.js 16.4.6 (security fix), production build verified",
+    "commit": null
+  },
+  {
     "version": "1.0.1.2.0.0",
     "date": "2026-11-25",
     "type": "feat",
