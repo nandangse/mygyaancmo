@@ -4,6 +4,74 @@ Source: the FlashGro33 teardown (25-Nov-2026). This turns its "take / improve" l
 to `cmomygyaanai/`: which page, which tabs, which fields, in what order. UI patterns first, then data,
 then functions. Everything here is per tenant and lives in the tenant's own database.
 
+## 0. What the screens look like (from the 11 screenshots in `docs/reference/flashgro/`)
+
+The visual language is plain and consistent; worth matching in spirit, not pixel for pixel:
+
+- **Shell:** white left sidebar with ~6 collapsible groups in small caps (CRM, EMAIL MARKETING, EMAIL VERIFIER,
+  AUTOMATIONS, WHATSAPP, MARKETING), "+ Add Modules" below, Reports and Settings pinned at the bottom.
+  Top bar: hamburger · one wide **natural-language search box** ("Try: 'contacts from last week' or 'high
+  value'") · green **AI** button · bell · avatar + name. Breadcrumbs under the top bar on inner pages
+  (Home › Contacts › William Teel › Enrichment Profile). Our shell already has the grouped sidebar and the
+  co-branded header; add the breadcrumb row and the search box.
+- **Dashboard (01):** page title + "Welcome back, <name>"; right-aligned buttons Customize · Add Widget ·
+  Export · **+ Quick Add** (dark). Two rows of four **KPI tiles**: coloured square icon on the left, label,
+  big number, small secondary figure ("1111 active", "0 new · 0 conv", "$0"), and a "View all / View
+  pipeline / View report" link at the bottom. Below: two cards side by side, "Sales Pipeline — Opportunities
+  by stage" with a Funnel/Time-series/Scatter switch, and "Campaigns" with Latest / Top Performing tabs.
+  A floating "✨ AI Assistant" chip bottom-right.
+- **Contact 360 (02, 03):** avatar initials + name, "Contact · CNT-SORUWALAOE" id, a grey "Contact" stage
+  pill, and buttons Send Email · **Re-enrich** (purple) · **AI Tag** (purple) · Edit (dark) · Delete (red).
+  Tabs with counts: Enrichment Profile · Activity (0) · Deals (0) · Emails (0) · WhatsApp (0) · Website (0)
+  · Live Chat (0) · Notes (0). Left column: **enrichment ring** (0% ENRICH), name + company link, a 2×2
+  stat block (LTV est · Lead score · Touchpoints · Tenure), Website activity (visits · pages · events),
+  Tags (+ Add Tag), Contact info, **Engagement Health** as five labelled progress bars (Intent score, Data
+  complete, Lead score, Health score, Buying affinity). Right: a grid of **data cards**, each with an icon,
+  a title, a coloured **badge** (CORE, PROFILE, B2B, INFERRED, TRACKED, TECH STACK, REVENUE, SIGNALS, GEO,
+  SOCIAL, TRIGGER), and label/value rows with "—" for empty and an inline "⟳ Enrich" chip beside missing
+  fields; an "Apollo Intelligence" strip with "Re-enrich via Apollo". Consent card at the bottom as four
+  dot-status items (GDPR consent ✓ · Email opt-in ✓ · Source provenance ✗ · Retention 36 months).
+- **Company 360 (04):** same shape as Contact 360. Header buttons Edit · **+ Create Opportunity** (green)
+  · Enrich · Export; tabs Enrichment Profile · Contacts (1) · Deals (0) · Activity · Documents. Left:
+  enrichment ring, Pipeline/Score/Contacts/Deals stat block, **Account Health** bars (Exec access 15%,
+  Engagement 5%, Data signal 8%, Renewal risk 87% in red). Cards: Firmographic, Industry & Segmentation
+  (with "Account score 4/100" and "ICP FIT" badge), Headcount & Structure, Financial profile, Contact
+  information, **Key Contacts** with avatar chips and "Harvest more from Apollo", Account Activity Timeline
+  (dot + event + "12 hours ago"), Geographic presence, Notes & Description with a "Scrape Description" button.
+- **Signal Intelligence (05):** title + subtitle, "Manage ICPs" button; a row of seven small counters
+  (Tracked · High ICP fit · Very high intent (red) · Recent funding (amber) · Outreach (purple) · Email
+  verified · In CRM); a filter card (Signal strength · ICP profile · Website selects, checkboxes High ICP
+  fit only · Recent funding · Email-verified IPs · In CRM, Filter button); empty state with a radio icon,
+  "No signals match your filters" and a hint linking to "Configure an ICP profile".
+- **ICP builder (06):** a long single-column form in cards: Basic information (name with examples,
+  description, **B2B / B2C radio** with one-line explanations, Primary ICP + Active checkboxes), then
+  Company criteria as a **grid of checkbox chips** (Technology, Healthcare, Finance, Manufacturing, Retail…).
+- **Automation builder (07):** three panels. Left: trigger select, "Include uncertain email activity"
+  checkbox, target list, **Enrolment mode** / **Re-entry policy** selects in a grey box, then "Add Steps"
+  as seven full-width outlined buttons with icons (Send Email, Wait, Condition, Manage Tags, Update Score,
+  Webhook, Goal). Middle: a vertical flow — a Trigger node, then numbered step cards (1 Wait ✓, 2 Send Email
+  "Click to configure"), each card bordered green when selected. Right: "Configure Step" panel (Wait
+  duration: 1 · Days). Top: editable automation name and a dark "Save Changes" button.
+- **Email builder (08):** full-screen editor, purple top bar (AI Builder · undo/redo · Save · Preview ·
+  **Spam Score** · Close). Left: block tabs (Layout · Content · Media · Components), "Import HTML Template",
+  block tiles (Section, Container, 2 Columns), a **Merge Tags** list ("click to copy": First name, Last name,
+  Email, Phone). Centre: canvas "Drag blocks here to start". Right: properties panel.
+- **Campaign create (09):** two columns. Left cards: Campaign details (name, subject with an **✨ AI**
+  button, preview text with a one-line hint), Recipients (Send to: Email lists / Company-Account radio, a
+  checklist of lists with subscriber counts, optional Segment select). Right: a dark "Continue to Design →"
+  button, Cancel, and a yellow "Pro Tips" card (subject < 50 chars, merge tags, test on devices, one CTA).
+- **WhatsApp settings (10):** the health check is an amber card "WhatsApp needs attention before it can
+  send" with two columns of **OK/Fix lines**, each a bold green OK or red Fix, a short check name, a dash,
+  and the evidence ("0 active account(s)"). Below: "Connected Accounts" (Connect with Facebook blue button,
+  Add Account green) and a "Setup Guide" checklist card with a "View Meta documentation" link.
+- **Sending Domains (11):** title + subtitle, a note on the domain limit, a table: domain (with "Added 12
+  hours ago"), Status pill (Pending, amber), **Verification progress** bar 66% with three dot-legend items
+  (MX green · DKIM grey · SPF green), Last verified, Default.
+
+Colour: near-white background, white cards with faint borders, dark-navy primary buttons, green for
+connect/create, purple for AI/enrich actions, amber for pending/attention, red for risk. Icons are flat
+squares in one colour per KPI. Density is medium: 25-row tables, 4 cards per row on desktop.
+
 ## 1. UI patterns to adopt everywhere
 
 **1.1 One page template.** Every list page becomes: title + one-line subtitle → row of 4–5 KPI cards →

@@ -2,6 +2,10 @@
 
 Version scheme: see docs/VERSIONING.md. Newest first.
 
+## v1.0.1.1.0.4 — 2026-11-25 — docs
+
+Spec: observed FlashGro UI language from the 11 screenshots; reference screens added
+
 ## v1.0.1.1.0.3 — 2026-11-25 — docs
 
 Spec: FlashGro-inspired UI, data model, ICP scoring, automations, signals for the CMO app

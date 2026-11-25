@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.1.1.0.4",
+    "date": "2026-11-25",
+    "type": "docs",
+    "summary": "Spec: observed FlashGro UI language from the 11 screenshots; reference screens added",
+    "commit": null
+  },
+  {
     "version": "1.0.1.1.0.3",
     "date": "2026-11-25",
     "type": "docs",
